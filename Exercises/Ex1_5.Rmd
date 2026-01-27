@@ -1,9 +1,9 @@
 ---
 title: "Exercises 1-5"
 output:
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
 ---
 
 (For each exercise, place your solution below the exercise description.)
@@ -22,9 +22,29 @@ This exercise demonstrates how to insert an image into an R Markdown notebook.
 
 **Note**: The key requirement is that others must be able to compile your R Markdown file successfully without having the image file locally. This will be the standard procedure for homework assignments and projects throughout the course.
 
+```{r, echo=FALSE, out.width="50%", fig.align="center"}
+# Make sure there are NO brackets [ ] or parentheses ( ) inside these quotes
+img_url <- "https://raw.githubusercontent.com/popsicle2003/Applied-Time-Series-Coursework/refs/heads/main/Exercises/UGA%20Logo.png"
+
+clean_url <- URLencode(img_url)
+
+# This part stays the same
+knitr::include_graphics(img_url)
+```
+
 # Exercise 2
 
 Recreate the content on page 47 of the textbook, starting from “If the errors $w_t$​ are normally distributed …” through the end of the page. Exact typesetting is not required; however, all mathematical notation and formatting must be correct.
+
+If the errors $w_t$ are normally distributed, $\hat\beta$ is also the maximum likelihood estimator for $\beta$ and is normally distributed with
+$$ \text{cov}(\hat{\beta})=\sigma^2_w C, \tag{2.6}$$
+where
+$$ C = \left(\sum_{t=1}^n z_t z'_t \right)^{-1} \tag{2.7}$$
+is a convenient notation. An unbiased estimator for the variance $\sigma^2_w$ is
+$$ s^2_w=MSE=\frac{SSE}{n-(q+1)} \tag{2.8} $$
+where MSE denotes the \textit{mean squared error}. Under normal assumption,
+$$ t = \frac{(\hat\beta_t-\beta_t)}{s_w\sqrt{c_{tt}}} \tag{2.8} $$
+
 
 # Exercise 3
 
@@ -35,6 +55,11 @@ In this exercise, we explore how to load an external dataset into R.
 2.  Upload the CSV file to a publicly accessible web location.
 
 3.  Create a code chunk below that loads the dataset from your web link into R and displays the first few rows using the `head()` function.
+
+```{r load-data}
+data_url
+
+```
 
 # Exercise 4
 
