@@ -1,0 +1,504 @@
+---
+title: "Chapter 0 Preparation"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+---
+
+# 0.1 R Markdown
+
+![](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*Hyj8RIFrNjZ5RScV-MCSOA.png)
+
+## 0.1.1 What is R Markdown?
+
+**R Markdown:** an authoring framework for data science. You can use a single R Markdown file to both:
+
+-   save and execute code
+
+-   generate high quality reports that can be shared with an audience
+
+Readily available for use in the latest versions of RStudio.
+
+For a quick introduction, see <https://rmarkdown.rstudio.com/index.html>.
+
+See also <https://bookdown.org/yihui/rmarkdown/> for an detailed introduction.
+
+**Visual R Markdown:** an interactive visual mode of R Markdown. To enable, click "Visual" at top left corner of the editing window.
+
+In this course, most of the lecture notes, all the homework assignments, as well as the final project are handled through R Markdown notebooks.
+
+## 0.1.2 R Code Chunk (or Block, or Cell)
+
+```{r}
+# This is a code chunk
+x<- "Hello World"
+print(x)
+```
+
+**How to add a new code chunk?**
+
+-   Keyboard shortcut for inserting a code chunk: Ctrl + Alt + I (OS X: Cmd + Option + I)
+
+-   Or in Visual mode, click Insert --\> Executable Cell --\> R
+
+-   Or in Source mode, type the chunk delimiters ```` ```{r} ``` ```` (it creates an inexecutable code chunk if dropping"{r}")
+
+**Tips:**
+
+-   Ctrl + Enter executes one row of code chunk. Ctrl+Shift+Enter executes the whole code chunk;
+
+-   Add parenthesis `( )` to an assignment expression to display its value after execution.
+
+```{r}
+#Warning: code chunks may be dependent on each other. The following line cannot be run before running the previous chunk.
+typeof(x)
+```
+
+## 0.1.3 R Markdown Texts
+
+*R Markdown* is an extension of *markdown* (<https://www.markdownguide.org/>), a lightweight markup language, that uses a relatively simple syntax, and facilitates the transformation of human-readable text files into .html or .pdf documents.
+
+One can type mathematical formulas with [LaTex Syntax](https://en.wikibooks.org/wiki/LaTeX/Mathematics):
+
+In-line formula: expansion of exponential function, delimited using "\$" : $e^x=\sum_{n=0}^{\infty} {x^n\over n!}$.
+
+Displayed formula using delimited using "\$\$":
+
+$$
+e^{i\pi} + 1 = 0 \tag{1}
+$$
+
+Multiple-line display:
+
+$$
+\text{ARCH(1) Model}:\qquad  
+\begin{aligned}  \epsilon_t &=  \sigma_t z_t;
+\\  \sigma_t^2 &= \alpha_0 + \alpha_1 \epsilon_{t-1}^2. 
+\end{aligned} 
+$$
+
+Want to use LaTex for mathematical typesetting beyond R Markdown? Check out [Overleaf](https://www.overleaf.com/learn).
+
+**Tips**
+
+-   Ctrl +D enables `code-like text`;
+
+-   If having issue with copy-and-paste in Visual mode, try doing so in Source mode.
+
+-   Redo: Default is Ctrl+Shift+Z (*NOT Ctrl+Y,* can be changed in Tools--\>Modify Keyboard Shortcuts).
+
+**Exercises 1 (insert image) and 2 (practice math texts).**
+
+## 0.1.4 Homework Submission
+
+Homework assignments will be posted as R Markdown notebooks in eLC.
+
+Procedure for homework assignments:
+
+1.  Download the notebooks containing the exercises due from eLC;
+2.  Work on the notebooks in RStudio.
+3.  Submit to eLC both a \*.Rmd file (the original R Markdown file) and a rendered PDF file (Knit to html and then print to PDF).
+
+(Illustration.)
+
+We will mostly work with datasets internal to "astsa" package. What if one wants to work with an external dataset (e.g., for project)?
+
+**Exercises 3: load external dataset.**
+
+# 0.2 R Primer
+
+## 0.2.1 Variable Assignment
+
+```{r}
+x=1.23456
+(x=x+1)
+```
+
+```{r}
+x<-1.23456
+(1+(x+1->x)->x)
+```
+
+\<- or -\> can be used anywhere, whereas the use of = is restricted.
+
+```{r}
+print(x,digits <- 2)
+```
+
+```{r}
+digits
+```
+
+## 0.2.2 Vector and Matrix Arithmetic
+
+```{r}
+x = c(1, 2, 3, 4) # c(): concatenation
+(y = 2*x)
+```
+
+```{r}
+log(exp(x)) #element-wise evaluation
+```
+
+```{r}
+z = c(1, 2, 3) ; w = c(2, 4, 1) # use of ; to separate multiple commonads on one line
+(z*w)
+# what happens for z*x?
+```
+
+```{r}
+
+```
+
+```{r}
+(x=1:10)
+(y=seq(1,10,2))
+```
+
+```{r}
+(xt=t(x)) #transpose to a row vector
+```
+
+```{r}
+(xt%*%x)
+(XXt=x%*%xt)
+```
+
+$$
+\mathbf{x}=[x_1,\ldots,x_n]^T=\begin{bmatrix}
+           x_{1} \\
+           x_{2} \\
+           \vdots \\
+           x_{n}
+\end{bmatrix}
+$$
+
+$$
+\mathbf{x}^T \mathbf{x}=\sum_{i=1}^n x_i^2.
+$$
+
+$$
+\mathbf{x}  \mathbf{x}^T=  \begin{bmatrix}
+           x_{1} \\
+           x_{2} \\
+           \vdots \\
+           x_{n}
+\end{bmatrix} [x_1,\ldots,x_n]=\begin{bmatrix}
+           x_{1}x_1 & x_1 x_2   & \cdots x_1 x_n \\
+           x_{2}x_1  & x_2 x_2  & \cdots  x_2 x_n  \\
+           \vdots   & \vdots   & \ddots    \vdots \\
+           x_{n}x_1 & x_nx_2   & \cdots    x_n x_n
+\end{bmatrix}
+=\left(x_ix_j\right)_{1\le i,j\le n}$$
+
+```{r}
+#extracting (2,3)-component of matrix
+XXt[2,3]
+```
+
+```{r}
+#extracting 3rd column of matrix
+XXt[ ,3]
+
+```
+
+## 0.2.3 Data Types
+
+**Common data types in R:**
+
+-   character
+-   numeric
+-   integer
+-   logical
+
+```{r}
+x <- "1"
+typeof(x) #check (R internal) data type
+```
+
+```{r}
+y <- 1
+typeof(y)
+```
+
+```{r}
+z <- 1L
+typeof(z)
+```
+
+```{r}
+w <- TRUE
+typeof(w)
+!w
+```
+
+R special values:
+
+```         
+NULL: empty
+NA:  not available, missing
+NaN: not a number  (result of some illegitimate arithmetic operation)
+Inf / -Inf
+```
+
+```{r}
+typeof(NULL);typeof(NA);typeof(NaN);typeof(Inf)
+```
+
+See [here](https://swcarpentry.github.io/r-novice-inflammation/13-supp-data-structures.html) for a more detailed introduction of R data types and structures.
+
+## 0.2.4 Programming Basics
+
+**Control flow**
+
+```         
+for (val in sequence)
+{
+  statement
+}
+
+while (test_expression)
+{
+  statement
+}
+
+if (test_expression)
+{
+  statement1
+}
+else
+{
+  statement2
+}
+```
+
+**Create a function**
+
+```         
+function_name <- function(arg_1, arg_2, ...)
+
+{
+
+Function body
+
+}
+```
+
+We consider a simulation study that illustrates the use of control flow and function.
+
+**Motivation**
+
+Law of Large Numbers: if $X_1,\ldots, X_n$ are random variables independently drawn from the same distribution with a **finite mean** $\mu$, then $\bar{X}_n=(X_1+\ldots+X_n)/n$ converges (in a suitable sense) to the the population mean (aka, expected value) $\mu=E[X_1]$ as $n\rightarrow\infty$.
+
+Distribution with finite mean: normal
+
+Distribution without finite mean: [Cauchy](https://en.wikipedia.org/wiki/Cauchy_distribution) (bell curve with fatter tail than normal)
+
+```{r}
+rnorm(10)
+```
+
+```{r}
+rcauchy(10)
+```
+
+```{r}
+mean(rnorm(10))
+```
+
+```{r}
+mild <- function(num)
+{
+  if (num>10000)
+  {
+    print('Sample size too large. Set to 10000')
+    num <- 10000
+  }
+ x <- c() # start with an empty vector
+ for (n in 1:num)
+ {
+   x[n] <- mean(rnorm(n))  #rnorm(n) generates n standard normal random numbers
+ }
+ plot(x, type="l", xlab="sample size", ylab="sample mean")
+}
+```
+
+```{r}
+mild(50000)
+```
+
+```{r}
+crazy <- function(num)
+{
+  if (num>10000)
+  {
+    print('Sample size too large. Set to 10000')
+    num <- 10000.
+  }
+ x <- c() # start with an empty vector
+ for (n in 1:num)
+ {
+   x[n] <- mean(rcauchy(n))  #rcauchy(n) generates n standard Cauchy random numbers
+ }
+ plot(x, type="l", xlab="sample size", ylab="sample mean")
+}
+```
+
+```{r}
+crazy(10000)
+```
+
+**Exercise 4. How about replacing mean with median in the exploration above?**
+
+## 0.2.5 R Objects
+
+R is mainly a *functional* programming language, which also supports [object-oriented programming](https://en.wikipedia.org/wiki/Object-oriented_programming). To learn more about advanced programming concepts in R, check out <https://adv-r.hadley.nz/index.html>.
+
+We use an example to illustrate important concepts associated with an R *object.*
+
+We consider a simple linear regression model:
+
+$$ 
+\begin{equation} y_i=10+2x_i+\epsilon_i,\qquad \epsilon_i \sim N(0,1) \tag{*} \end{equation} 
+$$
+
+```{r}
+x=rnorm(100) # generate covariate x samples by normal random numbers
+y=10+2*x+rnorm(100)# generate response  y samples  based on a linear regression model
+plot(x,y) #scatterplot
+```
+
+Next, we pretend that we do not know the underlying model (\*), and consider inferring/fitting the model based on the data.
+
+```{r}
+fit <- lm (y~x) # fit a linear regression model 
+```
+
+The variable `fit` contains an *object* of class "lm", which consists of a complicated set of information. The function [str](https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/str) can be used to display the structure of an R object.
+
+```{r}
+str(fit)
+```
+
+As an R object, `fit` has several *attributes,* which can be extracted by the function [attribute](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/attributes).
+
+```{r}
+attributes(fit) # extract the attributes of the R object stored in fit
+```
+
+We see two attributes: *names* and *class.* The *names* and *class* attributes of the object can also be extracted by the functions [names](https://stat.ethz.ch/R-manual/R-devel/library/base/html/names.html) and [class](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/class).
+
+```{r}
+ names(fit)
+ class(fit)
+```
+
+**Question**: What do these *names* stand for?
+
+Recall a data structure in R called [list](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/list), which is essentially a vector that can store data of different types in different elements. It allows assigning each element of the list a character name.
+
+```{r}
+z <- list(a=1, b='Ray', c=TRUE)
+attributes(z)
+```
+
+ Appending the dollar sign `$` after variable allows one to extract elements by name.
+
+```{r}
+z$b
+```
+
+Alternatively, an element of a list can be extracted as follows.
+
+```{r}
+z[[2]] #extract the 2nd element from the list
+```
+
+Returning to `fit`, we could similarly extract an element from the named list it contains.
+
+```{r}
+fit$coefficients
+fit[[1]]
+```
+
+As an R object with class "lm", `fit` is also associated with [methods](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/methods.html) specific to this class. For example, the generic function plot when applied to fit performance [plot tasks](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/plot.lm) specific to the class "lm".
+
+```{r}
+plot(fit) #the function plot when applied to "lm" object fit produces 4 different diagnostic plots
+```
+
+# 0.3 Time-Series Objects and "astsa" package
+
+A commonly used data structure or object for modeling practice in R is **data frame** (or a modern reworking [**tibble**](https://tibble.tidyverse.org/)).
+
+For dealing with real-life data, " [tidy](https://www.tidyverse.org/)" style is highly recommended. A good place to learn it: [R for Data Science](https://r4ds.had.co.nz/).
+
+```{r}
+mtcars
+```
+
+`mtcars` is stored as an object of "data.frame" class.
+
+```{r}
+class(mtcars)
+names(mtcars)
+```
+
+A data frame is good for many statistical analysis tasks, e.g., multiple regression.
+
+However, time series data has a special nature: **time order**.
+
+Base R provides an object for handling time series data: [ts](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/ts.html)
+
+Class "ts" has a number of methods useful for time series manipulations.
+
+There are more modern ones such as [zoo](https://cran.r-project.org/web/packages/zoo/index.html), [xts](https://cran.r-project.org/web/packages/xts/index.html) and [tsibble](https://cran.rstudio.com/web/packages/tsibble/vignettes/intro-tsibble.html) (which aligns with the "tidy" style mentioned above), but we will rarely use them in this course.
+
+```{r}
+x = c(1.2,2.4,3.6,2.1,1.9)
+(x_ts = as.ts(x)) # convert vector x to a ts object
+class(x)
+class(x_ts)
+```
+
+```{r}
+plot(x)
+plot(x_ts)
+```
+
+**Note**: there is no data between discrete time points. People usually connect the values at adjacent time periods to reconstruct visually a hypothetical continuously evolving time series.
+
+For more information, see plotting method [plot.ts](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/plot.ts.html).
+
+```{r}
+(x_quater = ts(x_ts, start=c(1950,3), frequency=4))
+#start:	the time of the first observation.
+#Either a single number or a vector of two numbers.
+#1st: a natural time unit, 2nd: and a (1-based) number of samples into the time unit.
+
+plot(x_quater)
+```
+
+```{r}
+(x_part = window(x_quater, start=c(1951,1), end=c(1951,3)) )
+```
+
+**Exercises 5: explore more about *ts* functionality.**
+
+We will also use the package *astsa* created for the textbook throughout the course. It is not in the default library.
+
+```{r}
+#Install package if needed; otherwise just load the package
+if(!require("astsa")) # if "astsa" package exists, !require("astsa")=FALSE, and "astsa is loaded".
+  {
+   install.packages("astsa")
+   library("astsa")
+  }
+```
+
+```{r}
+#Datasets in "astsa" package
+data()
+```

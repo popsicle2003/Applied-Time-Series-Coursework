@@ -1,0 +1,52 @@
+---
+title: "Exercises 6-10"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Exercise 6
+
+Complete Exercise 1.1 in the textbook. (You may need to study Examples 1.6 and 1.7 in the textbook first.)
+
+# Exercise 7
+
+In this exercise, you will explore an example of white but dependent noise.
+
+Suppose $\{w_t\}_{t\in \mathbb{Z}_+}$ is a standard Gaussian white noise series, namely, i.i.d. standard normal random variables. Construct a time series $\{x_t\}_{t\in \mathbb{Z}_+ }$ through products of two consecutive $w_t$ values as follows: $x_1= w_1 w_2, x_2=w_2w_3, ... , x_t=w_{t}w_{t+1}$.
+
+1.  Simulate and plot a realization of the time series $\{x_1,x_2,\ldots, x_{1000}\}$ as well as $\{w_1,\ldots,w_{1000}\}$. Apply the R function `acf` to the two series. Do the two `acf` plots look similar?
+
+2.  Repeat Part 1 for the squared series $\{x_1^2,\ldots, x_{1000}^2\}$ and $\{w_1^2,\ldots,w_{1000}^2\}$ instead. What do you observe now?
+
+*The next question is optional and will NOT be part of homework grade. You are encouraged to attempt it if you have taken STAT 4510.*
+
+3\*. Mathematically argue that that $\{x_t\}$ constructed above is white noise, but NOT white *independent* noise. (Hint: if random variables are independent, then so should be their squares.)
+
+# Exercise 8
+
+In the lecture we learned the autoregression model $x_t = a_0+ a_1 x_{t-1}+ \ldots + a_p x_{t-p} + w_t$
+
+(1) Write an R function "GenAR" which simulates autoregression model with Gaussian white noise. You need to achieve the following:
+
+-   The input of the function must include: length of simulated time series (sample size), variance of Gaussian white noise, the coefficient vector $(a_0,a_1,\ldots, a_p)$ and the initial value vector $(x_{-p+1},x_{-p+2},\ldots, x_0)$.
+
+-   The output is a vector (preferably a *ts* object) containing the simulated time series.
+
+You may directly make use of "filter" function in R.
+
+(2) Use the function to simulate the following model $$
+    x_t-2x_{t-1}+x_{t-2}= w_t,\quad t=1,2,3,\ldots, 1000
+    $$ where $w_t$ is Gaussian white noise with variance equal to 2 , and initial values are set as $x_{-1}=1, x_{0}=0$.
+
+(3) Discuss briefly what you observe. Does the time series curve look smoother or rougher compared to the random walk time series you saw in lecture?
+
+(4) Difference (with lag 1) the simulated time series and plot the resulting time series. What do you observe this time?
+
+# Exercise 9
+
+Exercise 1.3 in the textbook.
+
+# Exercise 10
+
+Exercise 1.4 in the textbook.

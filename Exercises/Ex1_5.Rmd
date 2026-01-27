@@ -1,0 +1,74 @@
+---
+title: "Exercises 1-5"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+(For each exercise, place your solution below the exercise description.)
+
+# Exercise 1
+
+This exercise demonstrates how to insert an image into an R Markdown notebook.
+
+1.  Download any version of a UGA logo image from the internet.
+
+2.  Use an image editor (e.g., Paint on Windows) to add your name to the image.
+
+3.  Upload the modified image to a publicly accessible web location (e.g., GitHub, OneDrive, or Google Drive).
+
+4.  Display the signed image below using your web link.
+
+**Note**: The key requirement is that others must be able to compile your R Markdown file successfully without having the image file locally. This will be the standard procedure for homework assignments and projects throughout the course.
+
+# Exercise 2
+
+Recreate the content on page 47 of the textbook, starting from “If the errors $w_t$​ are normally distributed …” through the end of the page. Exact typesetting is not required; however, all mathematical notation and formatting must be correct.
+
+# Exercise 3
+
+In this exercise, we explore how to load an external dataset into R.
+
+1.  Download daily S&P 500 index closing-price data from 06/01/2025 to 06/30/2025 as a CSV file (e.g., from this [link](https://www.marketwatch.com/investing/index/spx/download-data)).
+
+2.  Upload the CSV file to a publicly accessible web location.
+
+3.  Create a code chunk below that loads the dataset from your web link into R and displays the first few rows using the `head()` function.
+
+# Exercise 4
+
+In the lecture we saw the function
+
+```{r}
+crazy <- function(num)
+{
+  if (num>10000)
+  {
+    print('Sample size too large. Set to 10000')
+    num <- 10000.
+  }
+ x <- c() # start with an empty vector
+ for (n in 1:num)
+ {
+   x[n] <- mean(rcauchy(n))  #rcauchy(n) generates n standard Cauchy random numbers
+ }
+ plot(x, type="l", xlab="sample size", ylab="sample mean")
+}
+```
+
+which is used to visually illustrate the failure of Law of Large Numbers when the population mean does not exist. What if we replace the sample mean by sample median? To explore what happens, let's try the following.
+
+1.  Create a function called "cool" that does a similar job as the "crazy" function above, which replaces the mean by median. In addition, you are required to achieve the following: if the sample size is less than 100, replace it by 100 and display the message "Sample size too small. Set to 100."
+
+2.  Run your function 3 times with the inputs: `cool(100)` , `cool(1000)`, `cool(10000)` and display the results. Does a Law of Large Numbers seem hold for median?
+
+# Exercise 5
+
+1.  Create a *ts* object containing consecutive integers from 1 to 50, whose `frequency` is set to 12.
+
+2.  Display and plot the data. In the plot, what do the integers in the x-axis tick labels stand for?
+
+3.  Modify the attributes of the data, so that it represents a monthly time series starting in June 1990. Display the modified data.
+
+4.  Based on the previous item, extract the sub time series from December 1990 to April 1992.
