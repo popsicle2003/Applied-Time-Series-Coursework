@@ -75,51 +75,6 @@ acf(x_sq, main="ACF of x^2 (Squared Product Series)")
 
 Although it is hard to see, we observe that in the second plot, there is a rather large spike in comparison to the rest of the plot, which we do not observe in the first plot. This shows that while $x_t$ is uncorrelated, it is not independent, as $x_t$ influences the value of $x_{t+1}$ because they share a common factor $w_{t+1}$.
 
-**Part 3.**
-
-To demonstrate that $\{x_t\}$ is white noise, we must show that it has a mean of zero and no autocorrelation for lags $h \neq 0$.
-
-**1. Mean Stationarity:** Since $w_t$ are independent standard normal variables with $E[w_t] = 0$: $$
-E[x_t] = E[w_t w_{t+1}] = E[w_t]E[w_{t+1}] = 0 \cdot 0 = 0
-$$
-
-**2. Absence of Serial Correlation:** Consider the autocovariance function $\gamma_x(h) = E[x_t x_{t+h}] - E[x_t]E[x_{t+h}]$ for a lag $h \neq 0$. Since the means are zero: $$
-\gamma_x(h) = E[x_t x_{t+h}] = E[w_t w_{t+1} w_{t+h} w_{t+h+1}]
-$$
-
--   If $h \neq 0$, the set of indices $\{t, t+1\}$ and $\{t+h, t+h+1\}$ are disjoint (or share only one index).
--   Because the $w_t$ are independent, the expectation of the product factors into expectations of individual $w$ terms (or non-overlapping pairs).
--   Since $E[w_i] = 0$, any lone $w$ term makes the entire product zero.
-
-Thus, $\gamma_x(h) = 0$ for all $h \neq 0$. Since the series has zero mean, finite variance, and zero autocorrelation, it satisfies the definition of **White Noise**.
-
-If $\{x_t\}$ were a sequence of independent random variables, then any function of $x_t$ and $x_{t+1}$ must also be uncorrelated. Specifically, their squares $x_t^2$ and $x_{t+1}^2$ should be uncorrelated.
-
-We test the covariance of the squared series at lag 1: $$
-\text{Cov}(x_t^2, x_{t+1}^2) = E[x_t^2 x_{t+1}^2] - E[x_t^2]E[x_{t+1}^2]
-$$
-
-**Step A: Calculate the Expectation of the Product** $$
-\begin{aligned}
-E[x_t^2 x_{t+1}^2] &= E[(w_t w_{t+1})^2 (w_{t+1} w_{t+2})^2] \\
-&= E[w_t^2 \cdot w_{t+1}^4 \cdot w_{t+2}^2]
-\end{aligned}
-$$ By independence of $w$, this separates into: $$
-E[w_t^2] \cdot E[w_{t+1}^4] \cdot E[w_{t+2}^2]
-$$ For a standard normal distribution, the second moment $E[Z^2] = 1$ and the fourth moment $E[Z^4] = 3$. Therefore: $$
-E[x_t^2 x_{t+1}^2] = 1 \cdot 3 \cdot 1 = 3
-$$
-
-**Step B: Calculate the Product of Expectations** $$
-E[x_t^2] = E[w_t^2]E[w_{t+1}^2] = 1 \cdot 1 = 1
-$$ $$
-E[x_t^2]E[x_{t+1}^2] = 1 \cdot 1 = 1
-$$
-
-**Conclusion:** $$
-\text{Cov}(x_t^2, x_{t+1}^2) = 3 - 1 = 2 \neq 0
-$$ Since the squares of consecutive observations are correlated, $x_t$ and $x_{t+1}$ are **dependent**, despite being uncorrelated themselves.
-
 # Exercise 8
 
 In the lecture we learned the autoregression model $x_t = a_0+ a_1 x_{t-1}+ \ldots + a_p x_{t-p} + w_t$
