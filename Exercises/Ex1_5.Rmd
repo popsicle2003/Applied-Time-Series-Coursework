@@ -4,6 +4,7 @@ output:
   html_document:
     df_print: paged
   html_notebook: default
+  pdf_document: default
 ---
 
 (For each exercise, place your solution below the exercise description.)
@@ -23,12 +24,8 @@ This exercise demonstrates how to insert an image into an R Markdown notebook.
 **Note**: The key requirement is that others must be able to compile your R Markdown file successfully without having the image file locally. This will be the standard procedure for homework assignments and projects throughout the course.
 
 ```{r, echo=FALSE, out.width="50%", fig.align="center"}
-# Make sure there are NO brackets [ ] or parentheses ( ) inside these quotes
 img_url <- "https://raw.githubusercontent.com/popsicle2003/Applied-Time-Series-Coursework/refs/heads/main/Exercises/UGA%20Logo.png"
 
-clean_url <- URLencode(img_url)
-
-# This part stays the same
 knitr::include_graphics(img_url)
 ```
 
@@ -57,8 +54,10 @@ In this exercise, we explore how to load an external dataset into R.
 3.  Create a code chunk below that loads the dataset from your web link into R and displays the first few rows using the `head()` function.
 
 ```{r load-data}
-data_url
+data_url<-"https://raw.githubusercontent.com/popsicle2003/Applied-Time-Series-Coursework/refs/heads/main/Exercises/S%26P500%20Close%20Data.csv"
+sp500_data <- read.csv(data_url)
 
+head(sp500_data)
 ```
 
 # Exercise 4
@@ -88,6 +87,34 @@ which is used to visually illustrate the failure of Law of Large Numbers when th
 
 2.  Run your function 3 times with the inputs: `cool(100)` , `cool(1000)`, `cool(10000)` and display the results. Does a Law of Large Numbers seem hold for median?
 
+```{r}
+cool <- function(num)
+{
+  if (num>10000)
+  {
+    print('Sample size too large. Set to 10000')
+    num <- 10000.
+  }
+  if (num<100)
+  {
+    print('Sample size too small. Set to 100')
+    num <- 100.
+  }
+ x <- c() # start with an empty vector
+ for (n in 1:num)
+ {
+   x[n] <- median(rcauchy(n))  #rcauchy(n) generates n standard Cauchy random numbers
+ }
+ plot(x, type="l", xlab="sample size", ylab="sample mean")
+}
+```
+Testing
+```{r}
+cool(100)
+cool(1000)
+cool(10000)
+```
+Yes. We see that law of large numbers also applies to median.
 # Exercise 5
 
 1.  Create a *ts* object containing consecutive integers from 1 to 50, whose `frequency` is set to 12.
@@ -97,3 +124,22 @@ which is used to visually illustrate the failure of Law of Large Numbers when th
 3.  Modify the attributes of the data, so that it represents a monthly time series starting in June 1990. Display the modified data.
 
 4.  Based on the previous item, extract the sub time series from December 1990 to April 1992.
+
+```{r}
+my_ts <- ts(1:50, frequency = 12)
+print(my_ts)
+plot(my_ts, main = "Initial Time Series", ylab = "Value", xlab = "Time")
+```
+X axis represents time units.
+
+```{r}
+my_ts_modified <- ts(1:50, start = c(1990, 6), frequency = 12)
+print(my_ts_modified)
+plot(my_ts_modified, main = "Modified Time Series", ylab = "Value", xlab = "Time")
+```
+
+```{r}
+sub_ts <- window(my_ts_modified, start = c(1990, 12), end = c(1992, 4))
+plot(sub_ts, main = "Windowed Time Series", ylab = "Value", xlab = "Time")
+print(sub_ts)
+```
