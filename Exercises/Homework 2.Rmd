@@ -5,76 +5,6 @@ output:
     df_print: paged
 ---
 
-# Exercise 6
-
-Complete Exercise 1.1 in the textbook. (You may need to study Examples 1.6 and 1.7 in the textbook first.)
-
-```{r}
-library(astsa)
-
-ts.plot(EQ5,EXP6,col=c("blue","red"),lty=c(1,2),
-        main = 'Earthquake(Blue) vs Explosion(Red)',
-        ylab = "Seismic Amplitude")
-legend("topleft", legend = c("Earthquake", "Explosion"),
-       col = c("blue","red"), lty = c(1,2))
-
-```
-
-When we plot the earthquake along with the explosions, a few key differences become apparent.
-
-1.  Firstly, we observe that both signals show two distinct arrival phases, with the P wave starting at around $t$ = 1, while the S wave is around 1050-1100.
-2.  We also notice that the amplitude ratio between both the waves differ greatly for the earthquake and the explosion. For the earthquake, the ratio of amplitudes is much larger, and the S wave is far more sustained, when compared to the explosion amplitudes.
-3.  Circling back to the sustained amplitude for the earthquake, this implies a higher frequency characteristic, leading to a sustained coda (tail) in comparison to an impulsive event like an earthquake.
-
-# Exercise 7
-
-In this exercise, you will explore an example of white but dependent noise.
-
-Suppose $\{w_t\}_{t\in \mathbb{Z}_+}$ is a standard Gaussian white noise series, namely, i.i.d. standard normal random variables. Construct a time series $\{x_t\}_{t\in \mathbb{Z}_+ }$ through products of two consecutive $w_t$ values as follows: $x_1= w_1 w_2, x_2=w_2w_3, ... , x_t=w_{t}w_{t+1}$.
-
-1.  Simulate and plot a realization of the time series $\{x_1,x_2,\ldots, x_{1000}\}$ as well as $\{w_1,\ldots,w_{1000}\}$. Apply the R function `acf` to the two series. Do the two `acf` plots look similar?
-
-2.  Repeat Part 1 for the squared series $\{x_1^2,\ldots, x_{1000}^2\}$ and $\{w_1^2,\ldots,w_{1000}^2\}$ instead. What do you observe now?
-
-*The next question is optional and will NOT be part of homework grade. You are encouraged to attempt it if you have taken STAT 4510.*
-
-3\*. Mathematically argue that that $\{x_t\}$ constructed above is white noise, but NOT white *independent* noise. (Hint: if random variables are independent, then so should be their squares.)
-
-**Part 1.**
-
-```{r}
-set.seed(42)
-
-w <- rnorm(1001)
-x <- w[1:1000] * w[2:1001]
-
-w_trim <- w[1:1000]
-
-par(mfrow=c(2,1)) # Stack plots
-plot.ts(w_trim, main="Standard Gaussian White Noise (w)", col="blue")
-plot.ts(x, main="Product Series (x)", col="red")
-
-par(mfrow=c(2,1))
-acf(w_trim, main="ACF of w (White Noise)")
-acf(x, main="ACF of x (Product Series)")
-```
-
-We see that the ACF plots look very similar. Both $w_t$ and $x_t$ show negligible autocorrelations, confirming that $x_t$ is likely white noise.
-
-**Part 2.**
-
-```{r}
-# Squaring the series
-w_sq <- w_trim^2
-x_sq <- x^2
-
-par(mfrow=c(2,1))
-acf(w_sq, main="ACF of w^2 (Squared White Noise)")
-acf(x_sq, main="ACF of x^2 (Squared Product Series)")
-```
-
-Although it is hard to see, we observe that in the second plot, there is a rather large spike in comparison to the rest of the plot, which we do not observe in the first plot. This shows that while $x_t$ is uncorrelated, it is not independent, as $x_t$ influences the value of $x_{t+1}$ because they share a common factor $w_{t+1}$.
-
 # Exercise 8
 
 In the lecture we learned the autoregression model $x_t = a_0+ a_1 x_{t-1}+ \ldots + a_p x_{t-p} + w_t$
@@ -237,3 +167,35 @@ $$E[\mu_s \mu_t] = \mu_s \mu_t$$
 When we substitute these, we get: $$\gamma(s,t) = E[x_s x_t] - \mu_s \mu_t - \mu_s \mu_t + \mu_s \mu_t$$ $$\gamma(s,t) = E[x_s x_t] - \mu_s \mu_t$$
 
 This confirms that the autocovariance is the expectation of the product minus the product of the means.
+
+# Exercise 11
+
+To find the autocorrelation function (ACF) of $x_t$, we first need to determine its mean and autocovariance function.\
+Since $s_t$ is nonrandom and $E[v_t] = 0$: $$
+\mu_x(t) = E[x_t] = E[s_t + v_t] = E[s_t] + E[v_t] = s_t + 0 = s_t
+$$
+
+\
+The autocovariance $\gamma_x(s, t)$ = $E[(x_s - \mu_x(s))(x_t - \mu_x(t))]$.
+
+Substituting our expressions for $x_t$ and $\mu_x(t)$:
+
+$$
+\begin{aligned}
+\gamma_x(s, t) &= E[(s_s + v_s - s_s)(s_t + v_t - s_t)] \\
+&= E[v_s v_t]
+\end{aligned}
+$$ As we know, $v_t$ has a mean of zero, the term $E[v_s v_t]$ is exactly the autocovariance of the noise series, $\gamma_v(s, t)$. Therefore: $$
+\gamma_x(s, t) = \gamma_v(s, t)
+$$
+
+\
+The ACF is the normalized autocovariance: $$
+\rho_x(s, t) = \frac{\gamma_x(s, t)}{\sqrt{\gamma_x(s, s)\gamma_x(t, t)}}
+$$ Substituting $\gamma_x$ with $\gamma_v$: $$
+\rho_x(s, t) = \frac{\gamma_v(s, t)}{\sqrt{\gamma_v(s, s)\gamma_v(t, t)}} = \rho_v(s, t)
+$$
+
+Hence, we can conclude that the autocorrelation function of the signal-plus-noise series is identical to the autocorrelation function of the noise series: $$
+\rho_x(s, t) = \rho_v(s, t)
+$$

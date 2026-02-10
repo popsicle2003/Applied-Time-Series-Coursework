@@ -1,0 +1,36 @@
+---
+title: An R Markdown document converted from "Ex11_15"
+output: html_document
+---
+
+# Exercise 11
+
+Recall the signal-plus-noise model $$
+x_t=s_t+v_t,
+$$ where $s_t$ is the nonrandom signal series and $v_t$ iz the *zero-mean* noise time series (NOT necessarily white noise).
+
+Suppose the autocorrelation function (ACF) of $\{v_t\}$ is given by $\rho_v(s,t)$. What is the ACF $\rho_x(s,t)$ for $\{x_t\}$? Confirm your answer.
+
+# Exercise 12
+
+Refer to Exercise 1.6 in the textbook.
+
+(1) Write an R function called *TrendNoise*, which accepts $\beta_1$, $\beta_2$, $\sigma_w^2$ and $n$ as inputs (set $\{w_t\}$ to be Gaussian white noise), and returns a simulated series $\{x_1,\ldots,x_n\}$ of the model as output.
+
+(2) Use the function above to simulate 3 series under the settings $(\beta_1,\beta_2, \sigma_w^2)=(0,0,1), (1,1,1)$ and $(-1,-1,1)$ respectively, and set $n=200$ throughout. Plot them separately.
+
+(3) Complete what the exercise asks you to do.
+
+# Exercise 13 (Autocovariance of linear processes.)
+
+Exercise 1.11(a) in the textbook.
+
+(Part (b) is NOT included.)
+
+# Exercise 14
+
+Exercise 1.13 in the textbook.
+
+# Exercise 15
+
+Exercise 1.12 in the textbook.
