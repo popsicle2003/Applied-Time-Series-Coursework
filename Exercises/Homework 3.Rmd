@@ -1,0 +1,343 @@
+---
+title: Homework 3"
+output: html_document
+---
+
+# Exercise 12
+
+Refer to Exercise 1.6 in the textbook.
+
+(1) Write an R function called *TrendNoise*, which accepts $\beta_1$, $\beta_2$, $\sigma_w^2$ and $n$ as inputs (set $\{w_t\}$ to be Gaussian white noise), and returns a simulated series $\{x_1,\ldots,x_n\}$ of the model as output.
+
+(2) Use the function above to simulate 3 series under the settings $(\beta_1,\beta_2, \sigma_w^2)=(0,0,1), (1,1,1)$ and $(-1,-1,1)$ respectively, and set $n=200$ throughout. Plot them separately.
+
+(3) Complete what the exercise asks you to do.
+
+#### Part 1 and 2
+
+First, we write the function `TrendNoise` to simulate the model $x_t = \beta_1 + \beta_2 t + w_t$ and plot the three different scenarios.
+
+```{r}
+# (1) Define the TrendNoise function
+TrendNoise <- function(beta1, beta2, sigma2_w, n) {
+  t <- 1:n
+  w <- rnorm(n, mean = 0, sd = sqrt(sigma2_w))
+  x <- beta1 + beta2 * t + w
+  return(as.ts(x))
+}
+
+# (2) Simulate 3 series and plot them
+set.seed(42) # For reproducibility
+n_val <- 200
+
+# Generate the three series
+series1 <- TrendNoise(0, 0, 1, n_val)
+series2 <- TrendNoise(1, 1, 1, n_val)
+series3 <- TrendNoise(-1, -1, 1, n_val)
+
+# Plot the series
+par(mfrow = c(3, 1), mar = c(4, 4, 2, 1))
+plot(series1, main = expression(beta[1]==0 ~ "," ~ beta[2]==0 ~ "," ~ sigma[w]^2==1), ylab = "x_t", col = "blue")
+plot(series2, main = expression(beta[1]==1 ~ "," ~ beta[2]==1 ~ "," ~ sigma[w]^2==1), ylab = "x_t", col = "red")
+plot(series3, main = expression(beta[1]==-1 ~ "," ~ beta[2]==-1 ~ "," ~ sigma[w]^2==1), ylab = "x_t", col = "darkgreen")
+```
+
+Exercise 1.6
+
+Consider the time series $x_t = \beta_1 + \beta_2 t + w_t$, where $\beta_1$ and $\beta_2$ are known constants and $w_t$ is a white noise process with variance $\sigma_w^2$.
+
+(a) Determine whether $x_t$ is stationary.
+
+To be weakly stationary, a time series must have a constant mean function and an autocovariance function that depends only on the lag $h$. Let's check the mean of $x_t$:
+
+$$ \mu_x(t) = E[x_t] = E[\beta_1 + \beta_2 t + w_t] = \beta_1 + \beta_2 t + E[w_t] = \beta_1 + \beta_2 t $$
+
+Since the mean function $\mu_x(t)$ depends on time $t$ (assuming $\beta_2 \neq 0$), the series is not stationary. It exhibits a deterministic linear trend over time.
+
+(b) Show that the process $y_t = x_t - x_{t-1}$ is stationary.
+
+$$ \begin{aligned} 
+y_t &= x_t - x_{t-1} \\
+&= (\beta_1 + \beta_2 t + w_t) - (\beta_1 + \beta_2(t-1) + w_{t-1}) \\
+&= \beta_1 + \beta_2 t + w_t - \beta_1 - \beta_2 t + \beta_2 - w_{t-1} \\
+&= \beta_2 + w_t - w_{t-1} 
+\end{aligned} $$
+
+Checking stationarity conditions for $y_t$:
+
+1.  Mean:\
+    $$ E[y_t] = E[\beta_2 + w_t - w_{t-1}] = \beta_2 $$ The mean is constant.
+2.  Autocovariance:
+
+$$ \gamma_y(h) = Cov(y_{t+h}, y_t) = Cov(\beta_2 + w_{t+h} - w_{t+h-1}, \beta_2 + w_t - w_{t-1}) $$$$ \gamma_y(h) = Cov(w_{t+h} - w_{t+h-1}, w_t - w_{t-1}) $$
+
+For $h = 0$: $Cov(w_t - w_{t-1}, w_t - w_{t-1}) = Var(w_t) + Var(w_{t-1}) = 2\sigma_w^2$.
+
+For $h = 1$: $Cov(w_{t+1} - w_t, w_t - w_{t-1}) = Cov(-w_t, w_t) = -\sigma_w^2$.
+
+For $h = -1$: $Cov(w_{t-1} - w_{t-2}, w_t - w_{t-1}) = Cov(w_{t-1}, -w_{t-1}) = -\sigma_w^2$.
+
+For $|h| > 1$: The terms share no common white noise variables, so $\gamma_y(h) = 0$.
+
+Since the mean is constant and the autocovariance function depends only on the lag $h$, we can say $y_t$ is weakly stationary. Differencing the series successfully removes the linear trend.
+
+(c) Show the mean of the moving average $v_t$, and find its autocovariance function.
+
+The moving average is defined as: $v_t = \frac{1}{2q+1} \sum_{j=-q}^q x_{t-j}$.
+
+**1. Finding the Mean:** $$ \begin{aligned} 
+E[v_t] &= \frac{1}{2q+1} \sum_{j=-q}^q E[x_{t-j}] \\
+&= \frac{1}{2q+1} \sum_{j=-q}^q (\beta_1 + \beta_2(t-j)) \\
+&= \frac{1}{2q+1} \left( (2q+1)\beta_1 + (2q+1)\beta_2 t - \beta_2 \sum_{j=-q}^q j \right)
+\end{aligned} $$ Since the sum of a symmetric sequence around zero ($\sum_{j=-q}^q j$) is 0, the last term drops out: $$ E[v_t] = \beta_1 + \beta_2 t $$ This shows that a symmetric moving average filter passes a linear trend without distorting it.
+
+**2. Finding the Autocovariance:** Substitute $x_{t-j}$ into $v_t$: $$ v_t = \frac{1}{2q+1} \sum_{j=-q}^q (\beta_1 + \beta_2(t-j) + w_{t-j}) = \beta_1 + \beta_2 t + \frac{1}{2q+1} \sum_{j=-q}^q w_{t-j} $$
+
+The autocovariance $\gamma_v(h)$ it: $$ \gamma_v(h) = Cov(v_{t+h}, v_t) = Cov\left( \frac{1}{2q+1} \sum_{k=-q}^q w_{t+h-k}, \frac{1}{2q+1} \sum_{j=-q}^q w_{t-j} \right) $$
+
+$$ \gamma_v(h) = \frac{1}{(2q+1)^2} \sum_{k=-q}^q \sum_{j=-q}^q Cov(w_{t+h-k}, w_{t-j}) $$
+
+The covariance is $\sigma_w^2$ only when the indices match ($t+h-k = t-j \implies k = j+h$), and 0 otherwise. For a given lag $h$ (where $|h| \le 2q$), the number of overlapping terms between the two sums is $(2q+1) - |h|$.
+
+Thus, the simplified expression for the autocovariance function is: $$ \gamma_v(h) = \begin{cases} 
+\frac{\sigma_w^2}{(2q+1)^2} (2q + 1 - |h|) & \text{for } |h| \le 2q \\ 
+0 & \text{for } |h| > 2q 
+\end{cases} $$
+
+# Exercise 13 (Autocovariance of linear processes.)
+
+**Problem:** Exercise 1.11(a) in the textbook. Verify that the autocovariance function of the linear process $x_t = \mu + \sum_{j=-\infty}^\infty \psi_j w_{t-j}$ is given by $\gamma(h) = \sigma_w^2 \sum_{j=-\infty}^\infty \psi_{j+h} \psi_j$. Use the result to verify your answer to Problem 1.7.
+
+**Proof of the Autocovariance Function:**
+
+To find the autocovariance function $\gamma(h) = Cov(x_{t+h}, x_t)$, we start by substituting the definition of the linear process into the covariance operator:
+
+$$\gamma(h) = Cov \left( \mu + \sum_{k=-\infty}^\infty \psi_k w_{t+h-k}, \ \mu + \sum_{j=-\infty}^\infty \psi_j w_{t-j} \right)$$
+
+Since the covariance of constants is zero, the $\mu$ terms drop out. By using the bi-linearity of the covariance operator, we can pull the summations and constants out.
+
+$$\gamma(h) = \sum_{k=-\infty}^\infty \sum_{j=-\infty}^\infty \psi_k \psi_j Cov(w_{t+h-k}, w_{t-j})$$
+
+Much like in the previous question, because $\{w_t\}$ is a white noise process with variance $\sigma_w^2$, the covariance $Cov(w_{t+h-k}, w_{t-j})$ is equal to $\sigma_w^2$ if and only if the time indices are exactly the same. For all other combinations where $k \neq j+h$, the covariance is exactly 0. This simplifies our double summation down to a single summation where only the terms satisfying $k = j+h$ survive.
+
+$$\gamma(h) = \sum_{j=-\infty}^\infty \psi_{j+h} \psi_j \sigma_w^2$$
+
+Rearranging the constant gives us the formula we need to verify. $$\gamma(h) = \sigma_w^2 \sum_{j=-\infty}^\infty \psi_{j+h} \psi_j$$
+
+**Verification for Problem 1.7:**
+
+Problem 1.7 asks us for the autocovariance of the moving average process: $$x_t = w_{t-1} + 2w_t + w_{t+1}$$
+
+We can rewrite this in the standard linear process format by identifying the $\psi$ weights: $\psi_{-1} = 1$ , $\psi_0 = 2$ , $\psi_1 = 1$ , and $\psi_j = 0$ for all other $j$.
+
+Using the formula from the previous section $\gamma(h) = \sigma_w^2 \sum_{j=-\infty}^\infty \psi_{j+h} \psi_j$:
+
+-   For $h = 0$: $$\gamma(0) = \sigma_w^2 (\psi_{-1}\psi_{-1} + \psi_0\psi_0 + \psi_1\psi_1) = \sigma_w^2 (1(1) + 2(2) + 1(1)) = 6\sigma_w^2$$
+
+-   For$h = 1$: $$\gamma(1) = \sigma_w^2 (\psi_0\psi_{-1} + \psi_1\psi_0) = \sigma_w^2 (2(1) + 1(2)) = 4\sigma_w^2$$
+
+-   For$h = 2$: $$\gamma(2) = \sigma_w^2 (\psi_1\psi_{-1}) = \sigma_w^2 (1(1)) = 1\sigma_w^2$$
+
+-   For$h \ge 3$: There is no overlap where both $\psi_{j+h}$ and $\psi_j$ are non-zero, so $\gamma(h) = 0$.
+
+Because the autocovariance function is symmetric, $\gamma(-h) = \gamma(h)$.
+
+# Exercise 14
+
+**Problem:** Exercise 1.13 in the textbook. Consider the two series: $x_t = w_t$ ,$y_t = w_t - \theta w_{t-1} + u_t$ where $w_t$ and $u_t$ are independent white noise series with variances $\sigma_w^2$ and $\sigma_u^2$, respectively, and $\theta$ is an unspecified constant.
+
+**(a) Express the ACF,** $\rho_y(h)$**, for** $h = 0, \pm 1, \pm 2, \dots$ **of the series** $y_t$ **as a function of** $\sigma_w^2, \sigma_u^2$**, and** $\theta$**.**
+
+First, we find the autocovariance function $\gamma_y(h) = Cov(y_{t+h}, y_t)$: $$\gamma_y(h) = Cov(w_{t+h} - \theta w_{t+h-1} + u_{t+h}, w_t - \theta w_{t-1} + u_t)$$
+
+$w_t$ and $u_t$ are independent white noise processes, their cross-covariances are zero, and we only get non-zero variances when the time indices match exactly:
+
+\* For $h = 0$: $$\gamma_y(0) = Var(w_t) + (-\theta)^2 Var(w_{t-1}) + Var(u_t) = \sigma_w^2 + \theta^2 \sigma_w^2 + \sigma_u^2 = \sigma_w^2(1 + \theta^2) + \sigma_u^2$$ \* For $h = 1$: $$\gamma_y(1) = Cov(w_{t+1} - \theta w_t + u_{t+1}, w_t - \theta w_{t-1} + u_t) = Cov(-\theta w_t, w_t) = -\theta \sigma_w^2$$ \* For $h = -1$: By symmetry, $\gamma_y(-1) = \gamma_y(1) = -\theta \sigma_w^2$.
+
+\* For $|h| \ge 2$: There are no matching time indices between $y_{t+h}$ and $y_t$, so $\gamma_y(h) = 0$.
+
+Now we divide all these cases by $\gamma_y(0)$ to find the autocorrelation function (ACF). $$
+\rho_y(h) = \begin{cases} 
+1 & \text{for } h = 0 \\ 
+\frac{-\theta \sigma_w^2}{\sigma_w^2(1 + \theta^2) + \sigma_u^2} & \text{for } h = \pm 1 \\ 
+0 & \text{for } |h| \ge 2 
+\end{cases}
+$$
+
+**(b) Determine the CCF,** $\rho_{xy}(h)$ **relating** $x_t$ **and** $y_t$**.**
+
+First, compute the cross-covariance $\gamma_{xy}(h) = Cov(x_{t+h}, y_t)$: $$\gamma_{xy}(h) = Cov(w_{t+h}, w_t - \theta w_{t-1} + u_t)$$
+
+-   For $h = 0$: $$\gamma_{xy}(0) = Cov(w_t, w_t - \theta w_{t-1} + u_t) = Cov(w_t, w_t) = \sigma_w^2$$
+-   For $h = -1$: $$\gamma_{xy}(-1) = Cov(w_{t-1}, w_t - \theta w_{t-1} + u_t) = Cov(w_{t-1}, -\theta w_{t-1}) = -\theta \sigma_w^2$$
+-   For all other $h$: The time indices for the white noise components will not match, so $\gamma_{xy}(h) = 0$.
+
+To find the cross-correlation function (CCF), we need to divide by the product of the standard deviations: $\rho_{xy}(h) = \frac{\gamma_{xy}(h)}{\sqrt{\gamma_x(0)\gamma_y(0)}}$. We know $\gamma_x(0) = Var(w_t) = \sigma_w^2$, and we calculated $\gamma_y(0)$ in part (a). $$
+\rho_{xy}(h) = \begin{cases} 
+\frac{\sigma_w^2}{\sqrt{\sigma_w^2 [\sigma_w^2(1 + \theta^2) + \sigma_u^2]}} & \text{for } h = 0 \\ 
+\frac{-\theta \sigma_w^2}{\sqrt{\sigma_w^2 [\sigma_w^2(1 + \theta^2) + \sigma_u^2]}} & \text{for } h = -1 \\ 
+0 & \text{for all other } h
+\end{cases}
+$$
+
+**(c)** **Show that** $x_t$ **and** $y_t$ **are jointly stationary.**
+
+Two time series are jointly stationary if they each satisfy the conditions for weak stationarity individually, and their cross-covariance function $\gamma_{xy}(h)$ depends only on the lag $h$, independent of time $t$. We check these two conditions:
+
+1.  Individual Stationarity: $x_t = w_t$ is white noise, which is inherently stationary ($E[x_t] = 0$, and $\gamma_x(h)$ depends only on $h$). $y_t = w_t - \theta w_{t-1} + u_t$ has a constant mean $E[y_t] = 0$, and as shown in part (a), $\gamma_y(h)$ depends only on the lag $h$. Thus, $y_t$ is also weakly stationary.
+2.  Cross-Covariance: As derived in part (b), the cross-covariance, depends strictly on the lag distance $h$, regardless of the specific time $t$.
+
+Because both individual series are weakly stationary and their cross-covariance structure is time-invariant, $x_t$ and $y_t$ are jointly stationary.
+
+# Exercise 15
+
+**Problem: Exercise 1.12 in the textbook. For two weakly stationary series** $x_t$ **and** $y_t$**, verify equation (1.30), which states that** $\rho_{xy}(h) = \rho_{yx}(-h)$**.**
+
+By definition, the cross-covariance of $x$ and $y$ at lag $h$ is: $$\gamma_{xy}(h) = Cov(x_{t+h}, y_t) = E[(x_{t+h} - \mu_x)(y_t - \mu_y)]$$
+
+We implement a change of variables for the time index to adjust for negative lag. Let $k = t+h \implies t = k-h$. Substituting this new time index into our expectation yields: $$\gamma_{xy}(h) = E[(x_k - \mu_x)(y_{k-h} - \mu_y)]$$
+
+The expectation operator is commutative for scalar random variables, we can rearrange the terms: $$\gamma_{xy}(h) = E[(y_{k-h} - \mu_y)(x_k - \mu_x)]$$
+
+By definition, this expression is the cross-covariance between series $y$ and series $x$ separated by a lag of $-h$. Thus, we have established: $$\gamma_{xy}(h) = \gamma_{yx}(-h)$$
+
+Now, the cross-correlation function (CCF)"$$\rho_{xy}(h) = \frac{\gamma_{xy}(h)}{\sqrt{\gamma_x(0)\gamma_y(0)}}$$
+
+Substitute our identity established into the numerator: $$\rho_{xy}(h) = \frac{\gamma_{yx}(-h)}{\sqrt{\gamma_x(0)\gamma_y(0)}}$$
+
+$$\rho_{xy}(h) = \frac{\gamma_{yx}(-h)}{\sqrt{\gamma_y(0)\gamma_x(0)}} = \rho_{yx}(-h)$$
+
+This verifies equation (1.30).
+
+**Exercise 16**
+
+**Problem:** Exercise 1.19 in the textbook. Suppose $x_t = \mu + w_t + \theta w_{t-1}$, where $w_t \sim wn(0, \sigma_w^2)$.
+
+**(a) Show that the mean function is** $E(x_t) = \mu$.
+
+$$E[x_t] = E[\mu + w_t + \theta w_{t-1}]$$ $$E[x_t] = \mu + E[w_t] + \theta E[w_{t-1}]$$ Since $w_t$ is zero-mean white noise, $E[w_t] = 0$ for all $t$: $$E[x_t] = \mu + 0 + 0 = \mu$$
+
+**(b) Show that the autocovariance function of** $x_t$ **is given by** $\gamma_x(0) = \sigma_w^2(1 + \theta^2)$**,** $\gamma_x(\pm 1) = \sigma_w^2\theta$**, and** $\gamma_x(h) = 0$ **otherwise.**
+
+By definition, the autocovariance is $\gamma_x(h) = Cov(x_{t+h}, x_t)$. Since the constant $\mu$ does not affect covariance, we have: $$\gamma_x(h) = Cov(w_{t+h} + \theta w_{t+h-1}, w_t + \theta w_{t-1})$$
+
+-   For $h = 0$: $$\gamma_x(0) = Cov(w_t + \theta w_{t-1}, w_t + \theta w_{t-1})$$ $$\gamma_x(0) = Var(w_t) + \theta^2 Var(w_{t-1}) = \sigma_w^2 + \theta^2 \sigma_w^2 = \sigma_w^2(1 + \theta^2)$$
+
+-   For $h = 1$: $$\gamma_x(1) = Cov(w_{t+1} + \theta w_t, w_t + \theta w_{t-1})$$ Non-zero covariance comes from the matching $w_t$ terms: $$\gamma_x(1) = Cov(\theta w_t, w_t) = \theta Var(w_t) = \theta \sigma_w^2$$
+
+-   For $h = -1$: Since the autocovariance function is symmetric ($\gamma_x(-h) = \gamma_x(h)$), $\gamma_x(-1) = \theta \sigma_w^2$.
+
+-   For $|h| \ge 2$: There are no overlapping white noise terms between $x_{t+h}$ and $x_t$, so $\gamma_x(h) = 0$.
+
+**(c) Show that** $x_t$ is stationary for all values of $\theta \in \mathbb{R}$.
+
+A time series is weakly stationary if its mean function is constant over time and its autocovariance function depends only on the lag $h$ and not on the specific time $t$. As shown in part (a), the mean is strictly $\mu$ (constant). As shown in part (b), the autocovariance $\gamma_x(h)$ does not depend on t. Therefore, $x_t$ is stationary for any real value of $\theta$.
+
+**(d) Use equation (1.35) to calculate** $var(\bar{x})$ **for estimating** $\mu$ **when (i)** $\theta = 1$**, (ii)** $\theta = 0$**, and (iii)** $\theta = -1$**.**
+
+Equation (1.35) from the textbook states: $$var(\bar{x}) = \frac{1}{n} \sum_{h=-(n-1)}^{n-1} \left(1 - \frac{|h|}{n}\right) \gamma_x(h)$$
+
+Since $\gamma_x(h) = 0$ for $|h| \ge 2$, the sum reduces to just three terms ($h = -1, 0, 1$): $$var(\bar{x}) = \frac{1}{n} \left[ \left(1 - \frac{1}{n}\right)\gamma_x(-1) + \gamma_x(0) + \left(1 - \frac{1}{n}\right)\gamma_x(1) \right]$$ Substituting the values from part (b): $$var(\bar{x}) = \frac{1}{n} \left[ \sigma_w^2(1+\theta^2) + 2\left(1 - \frac{1}{n}\right)\theta\sigma_w^2 \right]$$
+
+Now we evaluate for the specific values of $\theta$:
+
+-    **(i)** $\theta = 1$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + 1^2) + 2\left(1 - \frac{1}{n}\right)(1) \right] = \frac{\sigma_w^2}{n} \left[ 2 + 2 - \frac{2}{n} \right] = \frac{\sigma_w^2}{n} \left( 4 - \frac{2}{n} \right)$$
+
+-   **(ii)** $\theta = 0$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + 0) + 0 \right] = \frac{\sigma_w^2}{n}$$
+
+-   **(iii)** $\theta = -1$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + (-1)^2) + 2\left(1 - \frac{1}{n}\right)(-1) \right] = \frac{\sigma_w^2}{n} \left[ 2 - 2 + \frac{2}{n} \right] = \frac{2\sigma_w^2}{n^2}$$
+
+**(e) In time series, the sample size** $n$ **is typically large, so that** $(n-1)/n \approx 1$**. With this as a consideration, comment on the results of part (d); in particular, how does the accuracy in the estimate of the mean** $\mu$ **change for the three different cases?**
+
+If we assume $n$ is very large, the term $(1/n)$ approaches 0. Hence, when we look at these cases:
+
+-   For $\theta = 1$ : $var(\bar{x}) \approx \frac{4\sigma_w^2}{n}$. The variance of the sample mean is about 4 times larger than it would be for pure white noise. Positive correlation implies that consecutive values tend to fall on the same side of the mean. This means that the sample mean contains less independent information and is a less accurate estimator of the true mean.
+-   For $\theta = 0$ : $var(\bar{x}) = \frac{\sigma_w^2}{n}$. This is the standard variance of the sample mean for independent and identically distributed data. This only has white noise at play.
+-   For $\theta = -1$ : $var(\bar{x}) = \frac{2\sigma_w^2}{n^2}$. The variance scales by $1/n^2$ rather than $1/n$. For a large $n$, this value approaches 0 extremely quickly. Negative correlation means that a value above the mean is likely to be immediately followed by a value below the mean. These fluctuations rapidly cancel each other out, making the sample mean a highly accurate estimator of the true mean $\mu$ when $n$ is large.
+
+**Exercise 17**
+
+**Part (1&2)**
+
+```{r}
+getS3method("plot", "acf")
+```
+
+By running getS3method("plot", "acf"), the specific line that computes clim0 (ignoring the 'if/else' controls) is:
+clim0 \<- qnorm((1 + ci)/2) / sqrt(x\$n.used) `This uses the quantile function of the standard normal distribution ('qnorm') to find the z-score corresponding to the confidence interval 'ci', and divides it by the square root of the sample size 'x$n.used'. We can wrap this into a standalone function:`
+
+```{r}
+clim <- function(n, p) {
+  qnorm((1 + p) / 2) / sqrt(n)
+}
+clim_soi <- clim(n = 453, p = 0.95)
+print(paste("clim(453, 0.95) =", round(clim_soi, 4)))
+```
+
+We get an output of approximately 0.092. This matches with that in our lecture.
+
+**Part 3**
+
+```{r}
+# Wrapper function to simulate and calculate empirical coverage
+run_sim <- function(n, p, h, reps = 5000) {
+  C_np <- clim(n, p)
+  acf_vals <- replicate(reps, acf(rnorm(n), lag.max = h, plot = FALSE)$acf[h + 1])
+  coverage_freq <- mean(abs(acf_vals) <= C_np)
+  return(coverage_freq)
+}
+
+set.seed(42)
+freq1 <- run_sim(n = 200, p = 0.90, h = 1)
+freq2 <- run_sim(n = 400, p = 0.80, h = 2)
+freq3 <- run_sim(n = 600, p = 0.95, h = 5)
+
+cat(sprintf("n=200, p=0.90, h=1 -> Empirical Frequency: %.4f\n", freq1))
+cat(sprintf("n=400, p=0.80, h=2 -> Empirical Frequency: %.4f\n", freq2))
+cat(sprintf("n=600, p=0.95, h=5 -> Empirical Frequency: %.4f\n", freq3))
+```
+
+We see that our empirical frequencies closely match the theoretical coverage probabilities in each of the setups.
+
+**Part 4**
+
+According to Property 1.2 in the textbook, if a time series is strictly white noise, its sample autocorrelations $\hat{\rho}(h)$ (for lags $h > 0$) are asymptotically independent and normally distributed with a mean of 0 and a variance of $1/n$ (for large sample sizes $n$).
+
+The dashed lines on an ACF plot, visually represent the constructed confidence intervals to test for significance. As we had shown in th previous part, most of the process is defined by white noise, and our ACF bars fall within the dashed lines most often, which is constructed per our preferred CI. If an ACF falls beyond the bars, it shows a highly unlikely event under the assumption of white noise, which allows us to check for or indicate that there is a significant autocorrelation for that specific lag we are testing.
+
+**Exercise 18**
+
+**Exercise 1.21 in the textbook.**
+
+**(a) Simulate a series of n=500 moving average observations as in Example 1.9 and compute the sample ACF,** $\hat{\rho}(h)$**, to lag 20. Compare the sample ACF you obtain to the actual ACF,** $\rho(h)$**.
+(b) Repeat part (a) using only n = 50. How does changing n affect the results?**
+
+Moving average process as $v_t = \frac{1}{3}(w_{t-1} + w_t + w_{t+1})$, where $w_t$ is Gaussian white noise.
+From Example 1.20, actual ACFs for moving average process are:
+
+$\rho(0) = 1$
+
+$\rho(1) = 2/3 \approx 0.667$
+
+$\rho(2) = 1/3 \approx 0.333$
+
+$\rho(h) = 0$ for $|h| \ge 3$
+
+```{r}
+# (a) Simulation for n = 500
+w_500 <- rnorm(500)
+# sides=2 centers the filter: v_t = (w_{t-1} + w_t + w_{t+1})/3
+v_500 <- filter(w_500, filter=rep(1/3, 3), sides=2)
+v_500 <- na.omit(v_500) # Remove NAs at the boundaries
+acf(v_500, lag.max=20, main="Sample ACF of MA Process (n=500)")
+
+# (b) Simulation for n = 50
+w_50 <- rnorm(50)
+v_50 <- filter(w_50, filter=rep(1/3, 3), sides=2)
+v_50 <- na.omit(v_50)
+acf(v_50, lag.max=20, main="Sample ACF of MA Process (n=50)")
+```
+
+-   We see for n = 500, it matches up with actual values of ACF very well. It also shows that beyond the cases of significant correlation, i.e. lag = 0, 1 and 2, all lag values are close to zero, and more importantly, lie within the dashed significance bounds, which are rather narrow. This resembles a clear, moving average of order 2 model.
+
+-   For n = 50, our outlook changes quite a bit. Our dashed lines are much broader, and there is a much higher degree of variability. For lag 1 and 2 for example, they're not close to their theoretical values. We also see in some reruns of the code, that even after lag = 3, we get some random significant ACF values, which we should not get. This makes us conclude that n = 50 is not sufficient to identify the order of the moving average model.

@@ -1,0 +1,60 @@
+---
+title: An R Markdown document converted from "Ex16_20"
+output: html_document
+---
+
+# Exercise 16
+
+Exercise 1.19 in the textbook.
+
+# Exercise 17
+
+The following command displays the source codes of [plot.acf](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/plot.acf) function, the plot method used for 'acf' object.
+
+```{r}
+getS3method("plot", "acf")
+```
+
+(1) 
+
+Run the command above. In the displayed codes, find a variable named *clim0* and find out how it is computed (Hint: the expression involves the function *qnorm* and variables *ci* and *x\$n.used*. Ignore the if ... else... controls). In fact, the value stored in *clim0* is half of the height between the dashed lines in the default acf plot .
+
+Based on what you find, write a new function called *clim*, which takes the sample size stored in *x\$n.used* (warning: dollar sign cannot be used as an input variable name) as well as the coverage probability stored in *ci* in the expression as inputs, and yields the *clim0* value as the output.
+
+(2) 
+
+Evaluate the function *clim* at sample size 453 and coverage probability 0.95. Compare the outcome with the position of the dashed lines in acf plot for *soi* time series in lecture.
+
+(3) 
+
+Below we use $C(n,p)$ to denote *clim* function evaluated at sample size $n$ and coverage probability $p$.
+
+Simulate a standard Gaussian **white noise** of sample size $n=200$, compute its ACF (autocorrelation) value at lag $h=1$. Repeat this 5000 times and record the frequency (proportion) of ACF absolute value being less than or equal to $C(n,p)$ with $n=200$ and $p=0.9$ (namely, the frequency of ACF value being covered by the interval $[-C(n,p), C(n,p)]$. How does this frequency compare with $p=0.9$.
+
+Do the same experiment with the setups $(n,p,h)=(400,0.8,2)$ and $(n,p,h)=(600,0.95,5)$. What do you observe?
+
+You are encouraged (but optional) to write a function to facilitate the computations in this problem.
+
+(4) 
+
+Read Property 1.2 and the paragraph that follows on page 28-29 of the textbook. Then based on your experiments above and the description in the textbook, come up with your own explanation of the dashed lines in the acf plot. Feel free to refer to other resources, but the explanation must be your own.
+
+# Exercise 18
+
+Exercise 1.21 in the textbook.
+
+# Exercise 19
+
+Exercise 1.23 in the textbook.
+
+# Exercise 20
+
+Refer to Exercise 1.13 in the textbook (Rmarkdown Notebook Exercise 14).
+
+(1) 
+
+Simulate $\{(x_1,y_1)^T,\ldots,(x_{500},y_{500})^T\}$ from the bivariate time series model with the choice $\theta=\sigma_w^2=\sigma_u^2= 1$ with $\{w_t\}$ and $\{u_t\}$ both being Gaussian white noise. Plot the bivariate series in the same plot.
+
+(2) 
+
+Compute the sample cross-correlations $\hat{\rho}_{xy}(1)$ and $\hat\rho_{xy}(-1)$ based on the simulated series. Compare with the theoretical $\rho_{xy}(1)$ and $\rho_{xy}(-1)$ values derived in Exercise 14.
