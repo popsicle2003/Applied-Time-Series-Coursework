@@ -1,0 +1,404 @@
+---
+title: Homework 4
+output: html_document
+---
+
+# Exercise 19
+
+Problem: Exercise 1.23 in the textbook. Simulate a series of $n = 500$ observations from the signal-plus-noise model presented in Example 1.12 with $\sigma_w^2 = 1$. Compute the sample ACF to lag 100 of the data you generated and comment.
+
+Solution:
+
+From Example 1.12 in the textbook, the signal-plus-noise model is given by: $$x_t = 2 \cos\left(2\pi \frac{t+15}{50}\right) + w_t$$ where $w_t$ is Gaussian white noise with variance $\sigma_w^2 = 1$.
+
+We will simulate this series for $n = 500$ and compute its sample autocorrelation function (ACF) up to lag 100.
+
+```{r}
+t <- 1:500
+
+# Gaussian white noise with variance 1
+w <- rnorm(500, mean = 0, sd = 1)
+
+# Generate the signal-plus-noise series
+x <- 2 * cos(2 * pi * (t + 15) / 50) + w
+
+# Setup plot area
+par(mfrow = c(2, 1))
+
+# Plot the simulated series
+plot.ts(x, main = "Simulated Signal-Plus-Noise Series", ylab = expression(x[t]), col = "darkblue")
+
+# Compute and plot the sample ACF to lag 100
+acf(x, lag.max = 100, main = "Sample ACF of Signal-Plus-Noise Series")
+```
+
+We see that the sample ACF plot shows a periodic wave that doesn't dampen at all. We have peaks at 0, 50 and 100, which mirrors the period of the cosine wave signal in the model. Even with white noise, the autocorrelation function filters it out over time, revealing the cyclical nature of the non-random signal.
+
+# Exercise 20
+
+Problem: Refer to Exercise 1.13 in the textbook (Rmarkdown Notebook Exercise 14).
+
+(1) Simulate $\{(x_1,y_1)^T,\ldots,(x_{500},y_{500})^T\}$ from the bivariate time series model with the choice $\theta=\sigma_w^2=\sigma_u^2= 1$ with $\{w_t\}$ and $\{u_t\}$ both being Gaussian white noise. Plot the bivariate series in the same plot.
+
+(2) Compute the sample cross-correlations $\hat{\rho}_{xy}(1)$ and $\hat\rho_{xy}(-1)$ based on the simulated series. Compare with the theoretical $\rho_{xy}(1)$ and $\rho_{xy}(-1)$ values derived in Exercise 14.
+
+### Part (1): Simulation and Plotting
+
+To simulate this bivariate process, we need to generate two independent white noise series, $w_t$ and $u_t$.
+
+```{r}
+n <- 500
+
+# Simulate Gaussian white noise series with n+1 for w to accommodate the lag w_{t-1}
+w <- rnorm(n + 1, mean = 0, sd = 1) 
+u <- rnorm(n, mean = 0, sd = 1)
+
+# Construct x_t and y_t
+x <- w[2:(n + 1)]        # x_t = w_t (from t=1 to 500)
+w_lag <- w[1:n]          # w_{t-1} (from t=0 to 499)
+theta <- 1
+
+y <- x - theta * w_lag + u
+
+# Plot both series on the same graph
+ts.plot(cbind(x, y), col = c("blue", "red"), lty = c(1, 2), 
+        main = "Simulated Bivariate Time Series", ylab = "Value")
+legend("topright", legend = c(expression(x[t]), expression(y[t])), 
+       col = c("blue", "red"), lty = c(1, 2))
+```
+
+### Part 2: Theoretical Cross-Correlations
+
+CCF is defined as $\rho_{xy}(h) = \text{Cor}(x_{t+h}, y_t)$. From exercise 14, we have:$$
+\rho_{xy}(h) = \begin{cases} 
+\frac{\sigma_w^2}{\sqrt{\sigma_w^2 [\sigma_w^2(1 + \theta^2) + \sigma_u^2]}} & \text{for } h = 0 \\ 
+\frac{-\theta \sigma_w^2}{\sqrt{\sigma_w^2 [\sigma_w^2(1 + \theta^2) + \sigma_u^2]}} & \text{for } h = -1 \\ 
+0 & \text{for all other } h
+\end{cases}
+$$
+
+Using the specified parameters ($\theta = 1$, $\sigma_w^2 = 1$, $\sigma_u^2 = 1$), the values are:
+
+-   At lag $h = 1$: $\rho_{xy}(1) = 0$. This is because $x_{t+1}$ (which is $w_{t+1}$) is entirely independent of $y_t$ (which only depends on $w_t, w_{t-1}$, and $u_t$).
+
+-   At lag $h = -1$: $\rho_{xy}(-1) = \frac{-\theta\sigma_w}{\sqrt{\sigma_w^2(1 + \theta^2) + \sigma_u^2}} = \frac{-1(1)}{\sqrt{1(2) + 1}} = \frac{-1}{\sqrt{3}} \approx -0.5774$. This negative correlation arises because $x_{t-1}$ (which is $w_{t-1}$) appears with a negative coefficient ($-\theta$) in the equation for $y_t$.
+
+Now, we use R's `ccf()` function to compute the sample cross-correlations.
+
+```{r}
+# Compute sample cross-correlation (suppressing the default plot)
+ccf_result <- ccf(x, y, plot = FALSE)
+
+# Extract specific lags
+rho_hat_1 <- ccf_result$acf[ccf_result$lag == 1]
+rho_hat_minus_1 <- ccf_result$acf[ccf_result$lag == -1]
+
+# Display comparison
+cat("Sample CCF at lag 1:      ", round(rho_hat_1, 4), "\n")
+cat("Theoretical CCF at lag 1:  0.0000\n\n")
+
+cat("Sample CCF at lag -1:     ", round(rho_hat_minus_1, 4), "\n")
+cat("Theoretical CCF at lag -1:-0.5774\n")
+```
+
+# Exercise 21
+
+Problem: Problem 2.1 in the textbook.
+
+For the Johnson & Johnson data, given $y_t$, let $x_t = \log(y_t)$. In this problem, we are going to fit a special type of structural model, $$x_t = T_t + S_t + N_t$$ where $T_t = \beta t$ is a trend component, $S_t = \alpha_1 Q_1(t) + \alpha_2 Q_2(t) + \alpha_3 Q_3(t) + \alpha_4 Q_4(t)$ is a seasonal component, and $N_t = w_t$ is noise. In our case, time $t$ is in quarters (1960.00, 1960.25, ...) so one unit of time is a year.
+
+(a) Fit the regression model $$x_t = \beta t + \alpha_1 Q_1(t) + \alpha_2 Q_2(t) + \alpha_3 Q_3(t) + \alpha_4 Q_4(t) + w_t$$ where $Q_i(t) = 1$ if time $t$ corresponds to quarter $i = 1, 2, 3, 4$, and zero otherwise. The $Q_i(t)$'s are called indicator variables. We will assume for now that $w_t$ is a Gaussian white noise sequence. We extract the time index for the trend and create a factor variable for the seasonal quarters.
+
+```{r}
+library(astsa)
+x <- log(jj)
+trend <- time(jj)
+Q <- factor(cycle(jj))
+
+# Fit the regression model without an intercept (0 + ...)
+model_a <- lm(x ~ 0 + trend + Q)
+summary(model_a)
+```
+
+(b) Based on the model summary, the estimated average annual increase is $\hat{\beta}$, since we're only progressing 1 time unit (1 year), which is approximately 0.1672.
+
+(c) To find the expected change from the third quarter to the fourth quarter within the same year, we evaluate the difference:
+
+$$ \Delta x = E[x_{t+0.25}] - E[x_t] = (\beta(t + 0.25) + \alpha_4) - (\beta t + \alpha_3) = 0.25\beta + \alpha_4 - \alpha_3 $$
+
+Computing delta_x and percent_change:
+
+```{r}
+# Extract coefficients
+beta_hat <- coef(model_a)["trend"]
+alpha_3 <- coef(model_a)["Q3"]
+alpha_4 <- coef(model_a)["Q4"]
+# Calculate the difference in logged earnings
+delta_x <- (0.25 * beta_hat) + alpha_4 - alpha_3
+delta_x
+
+# Calculate the percentage change in actual earnings (y_t)
+percent_change <- (exp(delta_x) - 1) * 100
+percent_change
+```
+
+We find that the actual earnings decrease by approximately 20.3051%
+
+(d)If we run `lm(x ~ trend + Q)`, which implicitly includes an intercept, R will automatically drop one of the terms (usually the first quarter indicator, `Q1`).
+
+Every observation falls into exactly one of the four quarters, the sum of the four quarterly indicator variables for any given time $t$ is always exactly 1 ($Q_1(t) + Q_2(t) + Q_3(t) + Q_4(t) = 1$). If an intercept is included, it adds a continuous layer of 1s to the matrix. As a result, the sum of the the indicator columns equal the intercept column, creating a perfect linear dependence amongst predictor variables. As such, the regression will fail to estimate coefficients for all variable since design matrix will not be full rank, and R usually drops either the intercept or one of our predictors to run the model.
+
+(e) 
+
+```{r}
+ts.plot(x, fitted(model_a), gpars = list(col = c("black", "red"), lwd = c(1, 2)),
+        main = "Johnson & Johnson Log Earnings with Fitted Values",
+        ylab = "log(y_t)")
+legend("topleft", legend = c("Actual Data", "Fitted Values"), 
+       col = c("black", "red"), lty = 1, lwd = c(1, 2))
+
+
+plot(resid(model_a), main = "Residuals of Structural Model", ylab = "Residuals", type = "o")
+abline(h = 0, col = "blue", lty = 2)
+
+acf(resid(model_a), main = "ACF of Residuals")
+```
+
+We see that the fitted values tend to generally track the trend of actual data pretty well, along with the seasonal fluctuations. However, when we review the ACF plots and residual plots, we see that all of it the deviations isn't necessarily white noise due to it crossing the ACF threshold, showing significant autocorrelation at multiple lags.
+
+# Exercise 22
+
+Problem: Problem 2.2 in the textbook.
+
+For the mortality data examined in Example 2.2:
+
+(a) 
+
+First, we need to load the `astsa` package which contains the data series: `cmort` (cardiovascular mortality), `tempr` (temperature), and `part` (particulate matter). We will use `ts.intersect` to align the time series so we can include the lagged variable $P_{t-4}$ without creating missing data mismatches.
+
+```{r}
+# Center the temperature variable
+temp_c <- tempr - mean(tempr)
+temp_c2 <- temp_c^2
+trend <- time(cmort)
+
+# Create the lagged particulate variable (lag = -4 for t-4)
+part_lag4 <- lag(part, -4)
+
+# Align all variables into a single data frame
+data_aligned <- ts.intersect(M = cmort, trend, temp_c, temp_c2, P = part, P4 = part_lag4, dframe = TRUE)
+
+# Fit the linear regression model including Pt and Pt-4
+model <- lm(M ~ trend + temp_c + temp_c2 + P + P4, data = data_aligned)
+summary(model)
+```
+
+We see that the P4 coefficient is a significant coefficient, hence we can conclude that the cardiovascular mortality, even when controlling for current trend, temperature, and current particulate levels.
+
+(b) 
+
+```{r}
+# Align the raw variables for the scatterplot and correlation matrix
+data_b <- ts.intersect(M = cmort, T = tempr, P = part, P4 = part_lag4, dframe = TRUE)
+
+# Draw the scatterplot matrix
+pairs(data_b, main = "Scatterplot Matrix of M_t, T_t, P_t, and P_{t-4}")
+
+# Calculate the pairwise correlations
+cor_matrix <- cor(data_b)
+cor_matrix
+```
+
+We see that from our scatterplot matrix, in terms of the relationship between M and P, we see a general upward trend (hence positive correlation of M wrt P), and we see the same for M and P4. We can also confirm this positive correlation from our correlation matrix, where we find that M is more correlated to P4 than P, which again is visible in our scatterplot matrix through a tighter cluster.
+
+# Exercise 23
+
+Problem: Problem 2.3 in the textbook. In this problem, we explore the difference between a random walk and a trend stationary process.
+
+(a) Generate four series that are random walk with drift, length n = 100 with $\delta = 0.01$ and $\sigma_w = 1$. Call the data $x_t$ for $t = 1, \dots, 100$. Fit the regression $x_t = \beta t + w_t$ using least squares. Plot the data, the true mean function (i.e., $\mu_t = 0.01 t$) and the fitted line, $\hat{x}_t = \hat{\beta} t$, on the same graph.
+
+```{r}
+set.seed(123) # For reproducibility
+par(mfrow=c(2,2), mar=c(2.5,2.5,0,0)+.5, mgp=c(1.6,.6,0)) # set up
+
+for (i in 1:4){
+  # Generate random walk with drift data
+  x = ts(cumsum(rnorm(100, mean = 0.01, sd = 1))) 
+  
+  # Fit regression without intercept
+  regx = lm(x ~ 0 + time(x), na.action=NULL) 
+  
+  # Plot data
+  plot(x, ylab='Random Walk w Drift', main = paste("Series", i)) 
+  
+  # Add true mean (red - dashed)
+  abline(a=0, b=0.01, col=2, lty=2) 
+  
+  # Add fitted line (blue - solid)
+  abline(regx, col=4) 
+}
+```
+
+(b) Generate four series of length n = 100 that are linear trend plus noise, say $y_t = 0.01 t + w_t$, where $t$ and $w_t$ are as in part (a). Fit the regression $y_t = \beta t + w_t$ using least squares. Plot the data, the true mean function (i.e., $\mu_t = 0.01 t$) and the fitted line, $\hat{y}_t = \hat{\beta} t$, on the same graph.
+
+```{r}
+set.seed(456) # For reproducibility
+par(mfrow=c(2,2), mar=c(2.5,2.5,0,0)+.5, mgp=c(1.6,.6,0)) # set up 2x2
+for (i in 1:4){
+  t_val = 1:100
+  # Generate linear trend plus noise
+  y = ts(0.01 * t_val + rnorm(100, mean = 0, sd = 1)) 
+  
+  # Fit regression 
+  regy = lm(y ~ 0 + time(y), na.action=NULL) 
+  
+  # Plot data
+  plot(y, ylab='Trend Plus Noise', main = paste("Series", i)) 
+  
+  # Add true mean (red - dashed)
+  abline(a=0, b=0.01, col=2, lty=2) 
+  
+  # Add fitted line (blue - solid)
+  abline(regy, col=4) 
+}
+```
+
+(c) When we compare our plots from part (a) and (b), we see that fitting a deterministic trend over a random walk is much worse than over a trend stationary process. The variance of a random walk increases over time, and the series can wander off from a true mean function. Hence, the fitted regression lines vary greatly from the true mean line, while in our trend stationary process, the data points fluctuate tightly around the true mean. Due to this, the regression and true mean lines are very close.
+
+# Exercise 24
+
+Problem: Problem 2.6 in the textbook.
+
+Consider a process consisting of a linear trend with an additive noise term consisting of independent random variables with zero means and variances $\sigma_w^2$, that is, $$x_t = \beta_0 + \beta_1 t + w_t$$ where $\beta_0$ and $\beta_1$ are fixed constants.
+
+(a) Prove $x_t$ is nonstationary. (Assume $\beta_1 \neq 0$)
+
+A time series is weakly stationary if its mean function is constant over time and its autocovariance function depends only on the lag $h$. For $x_t$
+
+$$\mu_x(t) = E[x_t] = E[\beta_0 + \beta_1 t + w_t]$$ $$\mu_x(t) = \beta_0 + \beta_1 t + E[w_t]$$ $$\mu_x(t) = \beta_0 + \beta_1 t$$
+
+Because we assume $\beta_1 \neq 0$, the mean function $\mu_x(t)$ depends on time $t$. It changes as $t$ changes. Therefore, $x_t$ is nonstationary.
+
+(b) Prove that the first difference series $\nabla x_t = x_t - x_{t-1}$ is stationary by finding its mean and autocovariance function.
+
+First, let's find the expression for the differenced series $\nabla x_t$: $$\nabla x_t = x_t - x_{t-1} = (\beta_0 + \beta_1 t + w_t) - (\beta_0 + \beta_1(t-1) + w_{t-1})$$ $$\nabla x_t = \beta_0 + \beta_1 t + w_t - \beta_0 - \beta_1 t + \beta_1 - w_{t-1}$$ $$\nabla x_t = \beta_1 + w_t - w_{t-1}$$
+
+Mean Function: $$E[\nabla x_t] = E[\beta_1 + w_t - w_{t-1}] = \beta_1 + E[w_t] - E[w_{t-1}] = \beta_1$$ The mean is a constant $\beta_1$, independent of $t$.
+
+Autocovariance Function: $$\gamma_{\nabla x}(h) = Cov(\nabla x_{t+h}, \nabla x_t) = Cov(\beta_1 + w_{t+h} - w_{t+h-1}, \beta_1 + w_t - w_{t-1})$$ Since constants do not affect covariance: $$\gamma_{\nabla x}(h) = Cov(w_{t+h} - w_{t+h-1}, w_t - w_{t-1})$$
+
+-   For $h = 0$: $$\gamma_{\nabla x}(0) = Cov(w_t - w_{t-1}, w_t - w_{t-1}) = Var(w_t) + Var(w_{t-1}) = 2\sigma_w^2$$
+-   For $h = 1$: $$\gamma_{\nabla x}(1) = Cov(w_{t+1} - w_t, w_t - w_{t-1}) = Cov(-w_t, w_t) = -\sigma_w^2$$
+-   For $h = -1$: $$\gamma_{\nabla x}(-1) = Cov(w_{t-1} - w_{t-2}, w_t - w_{t-1}) = Cov(w_{t-1}, -w_{t-1}) = -\sigma_w^2$$
+-   For $|h| > 1$: The terms share no common white noise variables, so $\gamma_{\nabla x}(h) = 0$.
+
+Because the mean is constant and the autocovariance function depends strictly on the lag distance $h$, we can say that first difference series $\nabla x_t$ is stationary.
+
+(c) Repeat part (b) if$w_t$ is replaced by a general stationary process, say $y_t$, with mean function $\mu_y$ and autocovariance function $\gamma_y(h)$.
+
+Let the new process be $x_t = \beta_0 + \beta_1 t + y_t$. The first difference is: $$\nabla x_t = (\beta_0 + \beta_1 t + y_t) - (\beta_0 + \beta_1(t-1) + y_{t-1}) = \beta_1 + y_t - y_{t-1}$$
+
+1\. Mean Function: $$E[\nabla x_t] = E[\beta_1 + y_t - y_{t-1}] = \beta_1 + E[y_t] - E[y_{t-1}]$$ Since $y_t$ is stationary, its mean is a constant $\mu_y$: $$E[\nabla x_t] = \beta_1 + \mu_y - \mu_y = \beta_1$$ The mean is a constant.
+
+2\. Autocovariance Function: $$\gamma_{\nabla x}(h) = Cov(\beta_1 + y_{t+h} - y_{t+h-1}, \beta_1 + y_t - y_{t-1})$$ $$\gamma_{\nabla x}(h) = Cov(y_{t+h} - y_{t+h-1}, y_t - y_{t-1})$$ Using the bi-linearity of covariance: $$\gamma_{\nabla x}(h) = Cov(y_{t+h}, y_t) - Cov(y_{t+h}, y_{t-1}) - Cov(y_{t+h-1}, y_t) + Cov(y_{t+h-1}, y_{t-1})$$ Because $y_t$ is stationary, we can replace these with its autocovariance function $\gamma_y$: $$\gamma_{\nabla x}(h) = \gamma_y(h) - \gamma_y(h+1) - \gamma_y(h-1) + \gamma_y(h)$$ $$\gamma_{\nabla x}(h) = 2\gamma_y(h) - \gamma_y(h+1) - \gamma_y(h-1)$$
+
+Since the mean is constant and the autocovariance is entirely a function of the lag $h$, we can say that the differenced series $\nabla x_t$ is still stationary.
+
+# Exercise 25
+
+Problem: Problem 2.7 in the textbook.
+
+Show that $x_t - x_{t-1}$ in Equation (2.27) is stationary.
+
+Proof:
+
+From Equation (2.27) in the textbook, the differenced series is given by: $$\nabla x_t = x_t - x_{t-1} = \delta + w_t + y_t - y_{t-1}$$ where $\delta$ is a constant drift, $w_t$ is white noise, $y_t$ is a stationary process, and $w_t$ is independent of $y_t$.
+
+To prove that $\nabla x_t$ is stationary, we must show that its mean function is constant and its autocovariance function depends only on the time lag $h$.
+
+1\. Mean Function: $$E[\nabla x_t] = E[\delta + w_t + y_t - y_{t-1}]$$ $$E[\nabla x_t] = \delta + E[w_t] + E[y_t] - E[y_{t-1}]$$
+
+Because $w_t$ is white noise, it has a mean of zero ($E[w_t] = 0$). Because $y_t$ is stationary, its mean is a constant $\mu_y$, regardless of lag.$$E[\nabla x_t] = \delta + 0 + \mu_y - \mu_y = \delta$$ The mean is a constant $\delta$, which is independent of time $t$.
+
+2\. Autocovariance Function: $$\gamma_{\nabla x}(h) = Cov(\nabla x_{t+h}, \nabla x_t)$$ $$\gamma_{\nabla x}(h) = Cov(\delta + w_{t+h} + y_{t+h} - y_{t+h-1}, \delta + w_t + y_t - y_{t-1})$$
+
+We can drop $\delta$ since it is a constant. The white noise process $w_t$ is also independent of the stationary process $y_t$, their cross-covariances are zero. This allows us to split the covariance into two separate parts: $$\gamma_{\nabla x}(h) = Cov(w_{t+h}, w_t) + Cov(y_{t+h} - y_{t+h-1}, y_t - y_{t-1})$$
+
+The first term is the autocovariance of white noise: $$Cov(w_{t+h}, w_t) = \gamma_w(h) = \begin{cases} \sigma_w^2 & \text{for } h = 0 \\ 0 & \text{for } h \neq 0 \end{cases}$$
+
+The second term is the autocovariance of the differenced stationary process $z_t = y_t - y_{t-1}$. Using the bi-linearity of covariance: $$Cov(y_{t+h} - y_{t+h-1}, y_t - y_{t-1}) = Cov(y_{t+h}, y_t) - Cov(y_{t+h}, y_{t-1}) - Cov(y_{t+h-1}, y_t) + Cov(y_{t+h-1}, y_{t-1})$$ Since $y_t$ is stationary, we can substitute its autocovariance function $\gamma_y$: $$= \gamma_y(h) - \gamma_y(h+1) - \gamma_y(h-1) + \gamma_y(h)$$ $$= 2\gamma_y(h) - \gamma_y(h+1) - \gamma_y(h-1)$$
+
+Combining both parts, the autocovariance function of the differenced series is: $$\gamma_{\nabla x}(h) = \gamma_w(h) + 2\gamma_y(h) - \gamma_y(h+1) - \gamma_y(h-1)$$
+
+Since the mean function $E[\nabla x_t] = \delta$ is constant and the autocovariance function $\gamma_{\nabla x}(h)$ depends only on the lag distance $h$, the differenced process $\nabla x_t$ is weakly stationary.
+
+# Exercise 28
+
+Problem: Problem 2.8 in the textbook.
+
+In this problem, we examine 634 years of glacial sediment data (varves) that can be taken as a long-term temperature proxy. Let $x_t$ denote the thickness of the deposit.
+
+(a) Argue that the glacial varve series exhibits heteroscedasticity by computing the sample variance over the first half and the second half of the data. Argue that the transformation $y_t = \log(x_t)$ stabilizes the variance over the series. Plot the histograms of $x_t$ and $y_t$ to see whether the approximation to normality is improved by transforming the data.
+
+First, we divide the data into two halves and compute their variances.
+
+```{r}
+library(astsa)
+# The varve dataset has 634 observations
+x <- varve
+half_n <- floor(length(x) / 2)
+
+# First and second half of original data
+var_x_first <- var(x[1:half_n])
+var_x_second <- var(x[(half_n + 1):length(x)])
+
+# Log transformation
+y <- log(x)
+var_y_first <- var(y[1:half_n])
+var_y_second <- var(y[(half_n + 1):length(y)])
+
+# Compare variances
+data.frame(
+  Half = c("First Half", "Second Half"),
+  Var_Original = c(var_x_first, var_x_second),
+  Var_Logged = c(var_y_first, var_y_second)
+)
+```
+
+The variance of the second half of the original series ($x_t$) is much larger than the variance of the first half, demonstrating heteroscedasticity. After applying the log transformation ($y_t$), the variances of the two halves are much closer in magnitude, stabilizing variance.
+
+```{r}
+par(mfrow = c(1, 2))
+hist(x, main = "Histogram of Original Data (x_t)", xlab = "x_t", col = "lightblue")
+hist(y, main = "Histogram of Logged Data (y_t)", xlab = "y_t = log(x_t)", col = "lightgreen")
+```
+
+We see that the histogram of the raw data is heavily skewed due to magnitude difference, while the logged data reveals a more symmetric normal-like distribution.
+
+(b) Plot the series $y_t$. Do any time intervals, of the order 100 years, exist where one can observe behavior comparable to that observed in the global temperature records in Figure 1.2?
+
+```{r}
+ts.plot(y, main = "Logged Glacial Varve Thickness", ylab = "log(varve)")
+```
+
+We see that around 200-500, there is a prolonged upward drift, which might resemble the global temperature records in figure 1.2.
+
+c\. ACF
+
+```{r}
+acf(y, main = "ACF of Logged Varves (y_t)")
+```
+
+The sample ACF of $y_t$ remains strictly positive and decays extremely slowly. This slow, linear decay displays nonstationarity.
+
+(d) Compute the difference $u_t = y_t - y_{t-1}$, examine its time plot and sample ACF, and argue that differencing the logged varve data produces a reasonably stationary series. Can you spot any practical difficulties in the resulting series $u_t$?
+
+```{r}
+# First difference
+u <- diff(y)
+
+ts.plot(u, main = "First Difference of Logged Varves (u_t)", ylab = "u_t")
+acf(u, main = "ACF of First Difference (u_t)")
+```
+
+We see that differencing the data once creates a massive improvement, centering it around a constant mean, and the variance visually appears stable over time in the time plot. The sample ACF of the differenced series $u_t$ drops off rapidly and cuts off after lag 1. This rapid dropoff indicates that the differencing has given us a pretty stationary series.

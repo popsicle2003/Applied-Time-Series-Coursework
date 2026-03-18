@@ -1,0 +1,305 @@
+---
+title: An R Markdown document converted from "Section 2_2.ipynb"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# 2.2 Detrending, Differencing and Variance Stabilization
+
+-   As we mentioned before, the sample mean or sample
+    autocovariance/correlation is a meaningful estimate of a theoretical
+    counterpart, only if the time series is weakly stationary.
+
+-   Often, real-life time series data exhibits non-stationarity.
+
+-   We will mention some methods playing down the effects of
+    nonstationarity so the stationary properties of the series may be
+    studied.
+
+**Note:**
+
+-   The idea of transforming "non-stationarity" to "stationarity" is NOT
+    the only way to start a time series analysis. Some methologies may
+    directly tackle "non-stationarity" (see, e.g., the project topics
+    Unit Root, State Space Models).
+
+-   Yet the strategy underlies a classical approach towards time series
+    analysis known as the [Box–Jenkins
+    Approach](https://en.wikipedia.org/wiki/Box%E2%80%93Jenkins_method),
+    and can also be viewed as a useful exploratory step in time series
+    analysis.
+
+```{r}
+#install.packages('astsa'); 
+library('astsa')
+```
+
+```{r}
+# Examples of non-stationary time series data
+plot(jj, type="o", ylab="Quarterly Earnings per Share")
+plot(gtemp_land, type="o", ylab="Global Land Temperature Deviations")
+
+```
+
+## 2.2.1 Trend Stationarity and Detrending
+
+The arguably easiest form of non-stationarity to work with is the
+**trend stationary**.
+
+**Definition** A time series model of $\{x_t\}$ is said to be **trend
+stationary**, if it takes the form $$
+x_t=\mu_t+ y_t
+$$ where $x_t$ are the observations, $\mu_t$ is the (random or
+nonrandom) trend, $y_t$ is a weakly stationary process.
+
+If the trend $\mu_t$ is regular (e.g., smooth, even following an
+algebraic form), a natural approach to proceed (**detrend**):
+
+1.  Construct a reasonable estimate of the trend component $\mu_t$, say
+    $\hat{\mu}_t$.
+
+2.  Work with the residuals $\hat{y}_t = x_t -\hat{\mu}_t$ as an
+    approximation of $y_t$.
+
+**Example**. Detrending Chicken Prices
+
+Recall in the previous section, we essentially worked with
+$$\mu_t=\beta_0+\beta_1 t $$ (here $t$ is in the unit of year, which is
+identical to $z_t$ in the previous section).
+
+```{r}
+plot(chicken)
+summary(fit <- lm(chicken~time(chicken), na.action=NULL)) # regress chicken on time
+plot(resid(fit), type="o", main="detrended")
+acf(resid(fit), 48, main="detrended")
+```
+
+## 2.2.2 Differencing and Stationarity
+
+**Observation**: chicken price data seems to exhibit random trends (also
+present in the residuals).
+
+An alternative model: in the trend stationary model $$
+x_t=\mu_t+ y_t, \tag{1}
+$$ we model $\mu_t$ as random walk with drift: (below let $t$ be
+integers) $$
+\mu_t= \delta+ \mu_{t-1} +w_t \tag{2},
+$$ where $\{w_t\}$ white noise. Assume $\{w_t\}$ and $\mu_0$ (and hence
+$\{\mu_t\}$) are independent of the weakly stationary $\{y_t\}$.
+
+If we follow the model assumptions (1) and (2), then the differenced
+series is $$
+x_{t}-x_{t-1}=(\mu_t+ y_t) -(\mu_{t-1}+ y_{t-1})= (\mu_t-\mu_{t-1})+(y_t-y_{t-1})=\delta+w_t+ y_t-y_{t-1}.
+$$
+
+Exercise 25. Show that the differenced series above is weakly
+stationary.
+
+**Example.** Differencing Chicken Price.
+
+```{r}
+plot(diff(chicken), type="o", main="differenced")
+acf(diff(chicken), 48, main="differenced")
+```
+
+If the trend stationary model with the random walk with drift $\delta$
+is assumed (namely (1) and (2) above), then one can use the sample mean
+of the differenced time series $\{x_{t}-x_{t-1}\}$ to estimate the drift
+$\delta$.
+
+```{r}
+#par(mfrow=c(2,1))
+plot(diff(chicken), type="o")
+(delta=mean(diff(chicken))) # drift estimate
+acf(diff(chicken), 48)
+```
+
+If in the trend stationary model $x_t=\mu_t+ y_t$, we replace the random
+walk with drift by the linear trend: $\mu_t=\beta_0+\beta_1t$, then $$
+x_t−x_{t−1}= (\mu_t-\mu_{t-1})+(y_t-y_{t-1})= \beta_1+ (y_t-y_{t-1}).
+$$ One can show similarly as above that the differenced series is weakly
+stationary with mean $\beta_1$.
+
+The so under this linear trend model, the sample mean of
+$\{x_t-x_{t-1}\}$ can be viewed as an estimate of $\beta_1$.
+
+Exercise 24.
+
+```{r}
+fit$coefficient[2]/12 # beta_1 estimate (rescaled for monthly time unit)
+delta
+```
+
+Exercise 26\*(Optional). Which is a better estimate?
+
+**Observations.**
+
+-   In the trend stationary model, when the trend is linear or (drifted)
+    random walk, differencing produces a weakly stationary series.
+-   However, the resulting weakly stationary series is not the original
+    stationary series $\{y_t\}$ assumed in the model, but
+    $\{y_t-y_{t-1}\}$ instead.
+-   Hence if the interest is in statistical analysis of $\{y_t\}$ (e.g.,
+    estimation of ACF), differencing will obscure the analysis.
+
+```{r}
+w=rnorm(1000)
+plot(y<-as.ts(w+0.01*(1:1000))) # sample ACF of linear trend plus white noise
+acf(w)
+acf(diff(y)) # sample ACF of differenced white noise
+```
+
+Comparison: **Detrending** vs **Differencing**:
+
+-   They both can be used to remove trend.
+-   Differencing requires no statistical estimation, whereas detrending
+    typically needs one.
+-   If *trend stationary model* is assumed and analysis of $\{y_t\}$ is
+    essential, then detrending may be more appropriate.
+-   If the goal is to coerce the data to stationarity, then differencing
+    may be more appropriate.
+
+## 2.2.3 Backshift and Differencing Operators
+
+One can difference a differenced series again.
+
+```{r}
+#install.packages('astsa'); 
+library('astsa')
+y <- diff(chicken)
+plot(y, main="first difference")
+acf(y,48)
+z<- diff(y)
+plot(z, main="second difference")
+acf(z,48)
+```
+
+Let's check how the algebra of repeated differencing works: suppose
+$\{x_t\}$ is the observed time series. After a differencing, we get the
+differenced series $\{y_t=x_{t}-x_{t-1}\}$. Now apply another round of
+differencing:
+
+$$
+z_t=y_t-y_{t-1}=(x_{t}-x_{t-1}) -(x_{t-1}-x_{t-2})= x_t-2x_{t-1}+x_{t-2}.
+$$
+
+Even another: $$
+u_t=z_{t}-z_{t-1}=(x_t-2x_{t-1}+x_{t-2}) -(x_{t-1}-2x_{t-2}+x_{t-3})=x_t -3 x_{t-1} +3x_{t-2} -x_{t-3}.
+$$
+
+Question: What do these coefficients $(1,-2,1)$ and $(1,-3,3,-1)$ look
+like?
+
+To facilitate the algebra of differencing, and in general linear
+filtering of time series, we introduce the followong concept.
+
+**Definition.** Given a time series $\{x_t\}$, we define the **backshift
+operator** $B$ as the operation $$B x_{t} =x_{t-1},$$\
+and the identity operator $I$ as the operation $$I x_t= x_t.$$
+
+Remark: like for linear filters, mathematically one can view $B$ and $I$
+and operators which takes a series as an input and yields another series
+as an output. Indeed, $B$ is like the *lag* function in R:
+*lag(x,k=-1)*, which shifts the time index by -1.
+
+**Definition.** Given a time series ${x_t}$, we define the forward-shift
+operator $B^{-1}$ as the operation $$
+B^{-1} x_{t} =x_{t+1},
+$$\
+and $k$-times iterated backshift and forward-shift operators as $$
+B^k x_t = B(\dots   B(B x_t))=x_{t-k},   \quad B^{-k} x_t = B^{-1}(\dots   B^{-1}(B^{-1} x_t))=x_{t+k},\quad k=1,2,3,\ldots,
+$$ and set $$
+B^0=I \quad(\text{sometimes as }1).
+$$
+
+**Note.**\
+$BB^{-1}=B^{-1}B=I$. $B^m B^n=B^{m+n}$ for any integers (positive,
+negative, or zero) $m$ and $n$.
+
+Any linear filter
+$\{x_t\}\rightarrow \{\sum_{k}a_{t-k} x_k=\sum_{k} a_{k} x_{t-k}\}$ can
+be expressed using the shift operators as $$
+\left(\sum_{k} a_k B^k\right) x_t =\sum_{k} a_{k} B^kx_{t}=\sum_{k} a_{k} x_{t-k}.
+$$
+
+For example, the difference operation (a special case of linear filter)
+can be expressed as $(I-B)$: $$
+(I-B) x_t= x_t-x_{t-1}.
+$$
+
+**Definition.** Denote the difference operator as $\nabla=I-B$, we
+define the $d$-times differencing operator as $$
+\nabla^d x_t=  \nabla (\ldots  \nabla(\nabla x_t)).
+$$
+
+For example,
+$\nabla^2 x_t= \nabla (x_{t}-x_{t-1}) = x_{t}-2x_{t-1}+ x_{t-2}$.
+
+**Fact.** When compositing multiple layers of linear filters, one can
+apply the same algebra rule as the multiplication of polynomials by
+treating $B$ as a variable and treating $I$ as "one".
+
+For example, with coefficients $a,b,c,d$, we have $$
+(aI+b B)(cI+d B)=  a I \cdot cI + a I \cdot d B + b B \cdot c I+ bB \cdot d B= acI + (ad+bc) B+ bd B^2.
+$$
+
+As a special case of applying the general rule above, one can expand
+$\nabla^d = (I-B)^d$ with [Binomial
+Theorem](https://en.wikipedia.org/wiki/Binomial_theorem) as $$
+\nabla^d = \sum_{k=0}^d {d\choose k} (-1)^{d-k} B^{d-k}.
+$$
+
+**Note.** The language and algebra of shift operators will be used
+extensively in the next Chapter on ARIMA models.
+
+```         
+diff(x, lag = 1, differences = 1, …)
+
+differences
+an integer indicating the order of the difference.
+```
+
+```{r}
+t=1:100
+plot(x<-as.ts(t^3-150*t^2+5900*t+45000)) # x stores a polynomial of degree 3
+```
+
+```{r}
+plot(diff(x, differences = 1), main = 'first difference')
+plot(diff(x, differences = 2), main = 'second difference')
+plot(diff(x, differences = 3), main = 'third difference')
+```
+
+**Fact**: $d$-times differencing reduces a polynomial trend of degree
+$d$ to a constant trend. (Further differencing will yield zeros.)
+
+Exercise 27.
+
+**Remark.**\* An alternative to differencing is a more flexible
+operation called *fractional differencing*. It extends the notion of the
+difference operator $(I-B)^d$ to fractional (non-integer) $d$. This is
+related to the project topic **long memory** time series.
+
+## 2.2.4 Variance Stabilization
+
+**Example.** Glacial Varve Thicknesses.
+
+Varve: an annual layer of sediment (proxies for climatic parameters such
+as temperature, e.g., the warmer the thicker)
+
+![](https://drive.google.com/uc?export=view&id=1uwdbc-cU3mc4Ld20ZGKj4sfHpWxnm3ft)
+
+```{r}
+#options(repr.plot.width=20, repr.plot.height=5)
+plot(varve, main="varve", ylab="")
+plot(log(varve), main="log(varve)", ylab="" )
+```
+
+The variability has been stabilized and more "normal".
+
+Exercise 28. Explore more.
+
+A more general family of transforms: Box–Cox. See equation (2.34) in the
+textbook.

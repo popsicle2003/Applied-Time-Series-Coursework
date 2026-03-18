@@ -1,0 +1,522 @@
+---
+title: An R Markdown document converted from "Section 2_3.ipynb"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# 2.3 Smoothing in the Time Series Context
+
+Often at the stage of exploratory analysis of time series, one does not
+wish to assume a specific parametric form for the mean function of a
+time series. Instead, one may want to freely explore traits in a time
+series such as long-term trend and seasonal components. For such a
+purpose, time series smoothing techniques play important roles.
+
+Broadly speaking, the techniques to be discussed in this section belong
+to the topic [nonparametric
+statistics](https://en.wikipedia.org/wiki/Nonparametric_statistics).
+
+## 2.3.1 Moving Average Smoother and Seasonality Filtering
+
+Previously, we discussed linear filter
+
+$$
+\{x_t\} \longrightarrow  \left\{m_t=\sum_{j} a_{j}x_{t-j}=\left(\sum_{j}a_jB^j\right) x_t \right\} \tag{1}.
+$$
+
+We looked at the 3-term moving average $$
+\frac{1}{3}(x_{t-1}+x_{t}+x_{t+1}), \tag{2}
+$$ which is a special case of linear filter by setting
+$a_{-1}=a_0=a_{+1}=\frac{1}{3}$ and $a_j=0$ for $|j|>1$. We discovered
+that this moving average has an effect of smoothing out the time series.
+
+We can generalize the moving average in (2) by allowing unequal weights
+and more terms, namely, we consider the linear filter (1) with
+coefficients $\{a_j\}$ satisfying $$
+a_j\ge 0,\quad \sum_{j} a_j =1.
+$$
+
+**Remark.**
+
+-   Often the coefficients are chosen such that $a_{-j}=a_j$ (symmetric
+    weighting).
+
+-   In a theoretical consideration, one may allow infinitely many
+    nonzero $a_j$'s, although in a practical computation, the sum in (1)
+    is always a truncated finite sum.
+
+Consider the SOI time series.
+
+```{r}
+#install.packages('astsa');
+library('astsa')
+```
+
+```{r}
+#options(repr.plot.width=15, repr.plot.height=6)
+acf(soi,lag.max = 48)
+```
+
+THe ACF plot suggests possible yearly cycle pattern in the time series.
+
+Let's consider a symmetric moving average ($t$ takes integer values and
+is in the unit of month) which corresponds to a yearly cycle: $$
+m_t= \frac{1}{24}x_{t-6}+\frac{1}{12}x_{t-5}+\frac{1}{12}x_{t-4}+\ldots+ \frac{1}{12}x_{t+4}+\frac{1}{12}x_{t+5}+ \frac{1}{24}x_{t+6} =\sum_{j} a_j x_{t-j}
+$$ with $a_j=\frac{1}{12}$ if $|j|\le 5$, $a_6=a_{-6}=\frac{1}{24}$ and
+$a_j=0$ for $|j|>6$.
+
+**Note.** Since the period 12 is an even number, whereas a symmetric
+moving average always has an odd number of terms, we have thus placed
+half weights to the two boundary points as a compromise.
+
+```{r}
+wgts = c(.5, rep(1,11), .5)/12 # weight coefficient vector
+
+nwgts = as.ts(c(rep(0,10), wgts, rep(0,10))) # make a copy of wgts as a ts object allowing time shifts (add some zeros on both sides).
+plot(nwgts, type="l", main = 'filter shape', xlab = 'index', ylab = 'coefficient value') # display the shape of the filter coefficients
+```
+
+Mathematical thinking behind: If a series $s_t$ has periodicity $12$,
+then what would happen for the filtered series: $$
+\sum_{j} a_{j} s_{t-j}
+$$ with $\{a_j\}$ as above?
+
+```{r}
+t=1:200
+
+s=as.ts(sin(2*pi/12*t+1)) # a signal of periodicity 12
+
+plot(s)
+lines(filter(s, sides=2, filter=wgts), lwd=3, col=4)
+```
+
+Consider the following decomposition $x_t = s_t + y_t$ where $y_t$
+captures the fluctuation beyond the periodic component (e.g., a linear
+trend and stationary noise) $$
+\sum_{j} a_{j} x_{t-j}= \sum_{j} a_{j} s_{t-j} + \sum_{j} a_{j} y_{t-j} = constant  + \sum_{j} a_{j} y_{t-j}.
+$$
+
+**Observation.** $\sum_{j} a_{j} x_{t-j}$ will not show periodic
+fluctuation (say periodic/seasonal fluctuaion has been filtered out).
+
+**Question**: if $z_t=\beta_0 +\beta_1 t$ is a straight line, what
+happens if we apply the same filter $\sum_{j} a_{j} z_{t-j}$ as above?
+
+```{r}
+z=as.ts(0.1*t+2) # a linear trend
+
+plot(z)
+lines(filter(z, sides=2, filter=wgts), lty=2 ,lwd=3, col=4)
+```
+
+Moving average smoother applied to trend+seasonal+noise data.
+
+```{r}
+n=length(s)
+x=s+0.01*(1:n)+0.5*rnorm(n)
+
+plot(x)
+lines(filter(x, sides=2, filter=wgts), lwd=3, col=4)
+```
+
+**Summary**: when a (linear trend + seasonal component + noise) model
+passes through the moving average smoother, the linear trend is
+invariant, seasonal component is filtered out, and the noise is
+smoothed.
+
+**Example.** Apply moving average smoother to SOI time series.
+
+```{r}
+#plot time series and the moving average
+
+soif = filter(soi, sides=2, filter=wgts)
+
+plot(soi)
+lines(soif, lwd=3, col=4)
+
+```
+
+The fluctuation left highlights El Nino effect.
+
+## 2.3.2 Kernel Smoothing
+
+Recall moving average smoother can be represented by a
+rectangle/trapezoid "bump". One can generalize such a "bump by
+introducing a **kernel** (function): $K(x)$ (controls shape of bump) and
+a **bandwidth** $b$ (controls width of bump).
+
+Define the smoother $$
+m_t=\sum_{i=1}^n w_i(t) x_i.
+$$ where $$
+w_i(t)=\frac{K(\frac{t-i}{b})}{\sum_{j=1}^n K(\frac{t-i}{b})}.
+$$
+
+Note that $\sum_{i=1}^n w_i(t)=1$ for any $t$, and $m_t$ is defined even
+for $t$ outside the sampling time range (e.g., non-integers).
+
+It is common to use a symmetric probability density function for the
+kernel $K$.
+
+A common choice of $K$ is the Gaussian kernel (probability density of
+normal distribution).
+
+The moving average smoother approximately corresponds to the "box"
+kernel $K(x)=1$ for $x\in [-1/2,1/2]$, and $K(x)=0$ otherwise.
+
+**Remark.**
+
+-   In R kernel smoothing is implemnted by the function *ksmooth*:
+
+```         
+ksmooth(x, y, kernel = c("box", "normal"), bandwidth = 0.5,
+        range.x = range(x),
+        n.points = max(100L, length(x)), x.points)
+
+x
+input x values. Long vectors are supported.
+
+y
+input y values. Long vectors are supported.
+
+kernel
+the kernel to be used. Can be abbreviated.
+All kernels are scaled so the upper and lower quartiles of the kernel (viewed as a probability density) are +/- 0.25.
+
+bandwidth
+the bandwidth.
+```
+
+-   In nonparametric statistics, kernel smoother is also called a
+    Nadaraya-Watson estimator, used to estimate the smoothly varying
+    mean.
+
+-   Often, the choice of bandwidth $b$ is much more important than the
+    choice of the kernel $K$.
+
+-   As described above, the symmetric kernel $K$ used in R is scaled so
+    that $\int_{-0.25}^{0.25} K(x)dx=0.5$. (For Gaussian kernel this is
+    the same as the density of $N(0,0.37^2)$.)
+
+-   We will not elaborate on how $b$ should be chosen. It can be chosen
+    in a data-driven way (e.g., cross-validation), which may be
+    discussed in a nonparametric statistics course. In practice it is
+    useful to try different $b$.
+
+-   Check
+    [KernSmooth](https://cran.r-project.org/web/packages/KernSmooth/KernSmooth.pdf)
+    package for modern implementation with choice of $b$ included.
+
+How does kernel smoothing affect periodic and linear trend?
+
+```{r}
+t=1:200
+s=as.ts(sin(2*pi/12*t+1)+1) # a signal of periodicity 12
+
+plot(s)
+lines(ksmooth(x = t, y = s, kernel = "normal", bandwidth = 5), lwd=3, col=4)
+```
+
+```{r}
+z=as.ts(0.1*t+2) # a linear trend
+
+plot(z)
+lines(ksmooth(x = time(z), y = z, kernel = "normal", bandwidth = 150), lwd=3, col=4)
+```
+
+Different bandwidth choices may reveal different features of trends.
+
+```{r}
+
+t=1:200
+s=as.ts(sin(2*pi/12*t+1)+1) # a signal of periodicity 12
+n=length(s)
+x=s+0.01*(1:n)+0.5*rnorm(n)
+
+plot(x) #black: signal + noise
+lines(ksmooth(x = time(x), y = x, kernel = "normal", bandwidth = 5), lwd=3, col=4) #blue: smoother
+lines(s+0.01*(1:n),lwd=1,col=2)# red: true signal (trend)
+```
+
+**Example.** Apply kernel smoothing to SOI.
+
+```{r}
+plot(soi, main = 'Gauss Kernel')
+lines(ksmooth(x = time(soi), y = soi, kernel = "normal", bandwidth = 4), lwd=2, col=4)
+ 
+ 
+
+ 
+
+plot(soi, main = 'Box Kernel')
+lines(ksmooth(time(soi), soi, "box", bandwidth=2), lwd=2, col=4)
+
+ 
+ 
+```
+
+## 2.3.3 LOWESS (locally weighted estimated scatterplot smoothing) / Local regression
+
+By Taylor expansion, we know that a smooth function can be *locally*
+approximated by a linear function, or more generally, a polynomial.
+
+This idea motivates us to consider *locally* fit a linear line /
+polynomial to time series.
+
+LOWESS / Local regression is an approach which implements this idea.
+
+-   A precise description of
+    [LOWESS](https://en.wikipedia.org/wiki/Local_regression) will be
+    discussed in an advanced nonparametric statistics course. Roughly
+    speaking, LOWESS performs a polynomial regression by downweighting
+    the points that are far from the time point of interest (similar
+    idea to kernel smoothing).
+
+-   LOWESS also involves a choice of bandwidth, reformulated as the
+    *smoother span* in R, which controls strength of smoothing.
+
+-   The R default choice of degree of polynomial = 1. In fact, kernel
+    smoothing is approximately equivalent to LOWESS with degree = 0.
+
+-   Check
+    [loess](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/loess),
+    a newer formula based version of *lowess*.
+
+```         
+lowess(x, y=NULL, f=2/3, iter=3L, delta=0.01 *
+       diff(range(x)), ...)
+x, y
+vectors giving the coordinates of the points in the scatter plot. Alternatively a single plotting structure can be specified.
+
+f
+the smoother span. This gives the proportion of points in the plot which influence the smooth at each value. Larger values give more smoothness.
+```
+
+```{r}
+t=1:200
+z=as.ts(0.1*t+2) # a linear trend
+plot(z)
+lines(lowess(z,f=0.1), lty=2, lwd=2, col=2)
+```
+
+```{r}
+u=as.ts(t^3-250*t^2+5900*t+45000) # a cubic trend
+plot(u)
+lines(lowess(u,f=0.1), lty=2, lwd=2, col=2)
+
+plot(u)
+lines(ksmooth(x = t, y = u, kernel = "normal", bandwidth = 1000), lwd=3, col=4)
+
+# big bandwidth comparison of kernel smoothing vs LOWESS
+```
+
+```{r}
+x=u+rnorm(200,sd=80000) # a cubic trend plus noise
+plot(x)
+lines(u,col = 3)
+lines(lowess(x,f=0.1), lty=2, lwd=2, col=2)
+```
+
+**Observation**:
+
+-   When smoothing span (bandwidth) is properly chosen, LOWESS can be
+    used to uncover a smooth trend.
+
+-   The trend fluctuation may also be dampened by LOWESS if smoothing
+    span is too large.
+
+-   When using LOWESS to uncover noisy trend, there is a tradeoff in
+    choosing smoothing span: too large $\rightarrow$ trend dampened; too
+    small $\rightarrow$ too much noise retained
+
+```{r}
+s=as.ts(sin(2*pi/100*t+1)+1) # a fluctuating signal
+x=s+rnorm(200,sd=0.2)
+```
+
+```{r}
+plot(x)
+
+lines(lowess(x,f=0.1), lty=2, lwd=2, col=2) #LOWESS smoother
+```
+
+**Example.** Apply LOWESS to SOI.
+
+```{r}
+plot(soi)
+lines(lowess(soi, f=.05), lwd=2, col=4) # attempt to capture El Nino cycle
+lines(lowess(soi), lty=2, lwd=2, col=2)
+```
+
+## 2.3.4 Smoothing Splines
+
+There is another popular nonparametric smoothing technique called
+[smoothing splines](https://en.wikipedia.org/wiki/Smoothing_spline). The
+mathematical motivation of the technique is somewhat different from the
+local averaging/fitting techniques we have seen above.
+
+Suppose the observed time series is $\{x_1,x_2,\ldots,x_n\}$ and we want
+to fit a smoother $m_t$. For mathematical convenience, let's treat $t$
+as a real number which can take non-integer values.
+
+The least squares criterion for finding best fit is to minimize
+
+$$
+SSE=\sum_{t=1}^n(x_t-m_t)^2.
+$$
+
+When $m_t$ is in a parametric form, e.g., staight line
+$m_t=\beta_0+\beta_1 t$, we find parameters, e.g., $\beta_0$ and
+$\beta_1$ which minimize SSE.
+
+Now suppose we do not wish to impose a parametric form for $m_t$,
+namely, we want to find a general curve which minimizes SSE above.
+
+However, if we do not have any additional constraint about the general
+curve, the problem is ill-posed.
+
+Question: why?
+
+To make the question well-posed, introduce an additional penalty term
+into the criterion:
+
+$$
+Criterion=SSE+Penalty= \sum_{t=1}^n(x_t-m_t)^2 + \lambda \int (m_t'')^2 dt,
+$$ where $\lambda>0$ is a parameter chosen by user.
+
+-   Mathematically it can be shown that the curve $m_t$ which minimizes
+    the criterion above is a cubic
+    [spline](https://en.wikipedia.org/wiki/Spline_(mathematics)),
+    piecewise polynomials with degrees $\le 3$, which can be efficiently
+    numerically evaluated.
+
+-   The penalty integral $\lambda \int (m_t'')^2 dt$ measures the "total
+    curvature" of the curve ($m_t''=0$ corresponds to straight line).
+    The larger the penalty parameter $\lambda$ is, the harder it makes
+    for the fitted line to "turn", and hence $\lambda$ controls the
+    smoothness (Note that $\lambda=\infty$ corresponds to fitting
+    straight line with OLS.)
+
+(For an alternative physical interpretation, see textbook.)
+
+-   As $\lambda\downarrow 0$, the solution curve approaches the
+    [interpolating
+    spline](https://en.wikipedia.org/wiki/Spline_interpolation), a curve
+    that goes through every $(t,x_t)$ point.
+
+In R the smoothing spline is implemented by the function
+[smooth.spline](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/smooth.spline).
+
+```         
+smooth.spline(x, y = NULL, w = NULL, df, spar = NULL, lambda = NULL, cv = FALSE,
+              all.knots = FALSE, nknots = .nknots.smspl,
+              keep.data = TRUE, df.offset = 0, penalty = 1,
+              control.spar = list(), tol = 1e-6 * IQR(x), keep.stuff = FALSE)
+
+x
+a vector giving the values of the predictor variable, or a list or a two-column matrix specifying x and y.
+
+y
+responses. If y is missing or NULL, the responses are assumed to be specified by x, with x the index vector.
+
+spar
+smoothing parameter, typically (but not necessarily) in \((0,1]\). Alternatively lambda may be specified instead of the scale free spar=\(s\).
+
+if smoothing parameter is not specified, cross validation is used to choose smoothing parameter
+```
+
+```{r}
+t=1:200
+u=as.ts(t^3-250*t^2+5900*t+45000) # a cubic trend
+plot(u)
+lines(smooth.spline(time(u), u, spar=0.999), lwd=2, lty=2, col=4)
+```
+
+```{r}
+s=as.ts(sin(2*pi/100*t+1)+1) # a fluctuating trend
+plot(s)
+lines(smooth.spline(time(s), s, spar=0.95), lwd=2, lty=2, col=4)
+```
+
+```{r}
+x=s+rnorm(200,sd=0.2) # signal plus noise
+plot(x)
+lines(smooth.spline(time(x), x, spar=0.8), lwd=2, lty=2, col=4)
+```
+
+**Example.** Apply Smoothing Spline to SOI.
+
+```{r}
+plot(soi)
+lines(smooth.spline(time(soi), soi, spar=.5), lwd=2, col=4) # spar is a log rescaled version of lambda
+lines(smooth.spline(time(soi), soi, spar= 1), lty=2, lwd=2, col=2)
+```
+
+```{r}
+plot(time(soi),soi)
+lines(smooth.spline(time(soi), soi), lty=2, lwd=2, col=2) # if smoothing parameter is not specified, cross validation is used to choose smoothing parameter
+```
+
+## 2.3.5 Smoothing Scatterplot
+
+The smoothing techniques discussed so far are essentially applied to
+data pairs $\{(1,x_1),\ldots, (n,x_n)\}$. If one has another observed
+time series $\{y_1,\ldots,y_n\}$, one can also apply the smoothers to
+the pairs $\{(x_1,y_1),\ldots, (x_n,y_n)\}$ to explore the marginal
+dependence structure.
+
+**Example.**
+
+```{r}
+options(repr.plot.width=10, repr.plot.height=10)
+plot(tempr, cmort, xlab="Temperature", ylab="Mortality")
+lines(lowess(tempr, cmort, f=0.2))
+```
+
+One can also apply the smoothing technique to explore lagged-value
+scatterplot.
+
+*astsa* includes functions such as
+[lag1.plot](https://www.rdocumentation.org/packages/astsa/versions/1.14/topics/lag1.plot)
+(single time series) and
+[lag2.plot](https://www.rdocumentation.org/packages/astsa/versions/1.14/topics/lag2.plot)
+(cross time series) for lagged-value scatterplot with LOWESS smoother.
+
+```{r}
+options(repr.plot.width=15, repr.plot.height=15)
+lag1.plot(soi, 3)
+```
+
+```{r}
+lag2.plot(soi, rec, 3)
+```
+
+**Summary.**
+
+-   Local average/regression based methods: Moving Average, Kernel
+    Smoother, LOWESS.
+
+-   Smoothing Spline.
+
+-   Typically, the performance of these smoothing techniques are
+    similar. The more important choice is the strength of smoothing.
+
+-   With a proper choice of strength of smoothing, the smoothing curve
+    can be viewed as a nonparameteric estimate of the underlying smooth
+    trend.
+
+Exercises 29, 30
+
+Certain smoothing techniques can also be used to produce forecast.
+
+For example, [exponential
+smoothing](https://en.wikipedia.org/wiki/Exponential_smoothing).
+
+Project topic: Forecasting with ETS.
+
+```{r}
+fit <- HoltWinters(chicken,alpha=0.5, beta=FALSE, gamma= FALSE) #exponential smoothing
+pred<-predict(fit, n.ahead =10, prediction.interval = TRUE)
+plot(fit,pred)
+```

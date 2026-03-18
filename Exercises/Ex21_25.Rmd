@@ -1,0 +1,24 @@
+---
+title: An R Markdown document converted from "Ex21_25"
+output: html_document
+---
+
+# Exercise 21
+
+Problem 2.1 in the textbook.
+
+# Exercise 22
+
+Problem 2.2 in the textbook.
+
+# Exercise 23
+
+Problem 2.3 in the textbook.
+
+# Exericise 24
+
+Problem 2.6 in the textbook. (For (a), assume $\beta_1\neq 0$.)
+
+# Exercise 25
+
+Problem 2.7 in the textbook.

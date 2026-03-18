@@ -1,0 +1,98 @@
+---
+title: An R Markdown document converted from "Ex26_30"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Exercise 26\* (Optional)
+
+Suppose the time series $x_t$ follows the following trend stationary
+model:
+
+$$
+x_t=\mu_t + w_t,
+$$ where $\{w_t\}$ is *white noise* with variance $\sigma_w^2$, and we
+have a linear trend $$
+\mu_t=\beta_0+\beta_1 t.
+$$
+
+Assume $t$ takes integer values throughout.
+
+(a) 
+
+Suppose the observations are $\{x_1,\ldots,x_n\}$ and we use them to
+estimate $\beta_1$ in two different ways:
+
+-   OLS (estimated jointly with $\beta_0$).
+-   Sample mean of the differenced time series $\{x_t-x_{t-1}\}$.
+
+Both are unbiased estimates (expected values of the estimates match the
+true $\beta_1$). We compare their variances.
+
+**Derive formulas for the (theoretical) variances of these two estimates
+as functions of sample size and compare them. Comment on your finding.**
+
+*Hint*: for simple linear regression $x_t= \beta_0 + \beta_1 z_t +w_t$
+with explanatory variable $\{z_t\}$ and white noise $\{w_t\}$ of
+variance $\sigma_w^2$, it is known that the variance of OLS estimate of
+$\beta_1$ is given by the formula $$
+\frac{\sigma_w^2}{\sum_{t=1}^n (z_t- \bar{z})^2}=\frac{\sigma_w^2}{(\sum_{t=1}^n z_t^2)- n\bar{z}^2}.
+$$ To derive the desired formula, plug in $z_t=t$ and simplify.
+[This](https://en.wikipedia.org/wiki/Square_pyramidal_number) may be
+helpful.
+
+For the variance of the estimate of $\beta_1$ based on differencing,
+express the sample mean of $\{x_t-x_{t-1}\}$ (note that the sample size
+is $n-1$ after differencing) in terms of $\{w_t\}$, and then compute the
+variance.
+
+(b) 
+
+The Code Cell below intends for a simulation demonstration of the
+theoretical study in (a). Read the code and add necessary additional
+ingredients to complete the purpose.
+
+```{r}
+n=100
+time=1:n
+beta0=1
+beta1=3 
+
+rep=2000
+
+est1<-est2<-c()
+for (i in 1:rep)
+{
+  x=rnorm(n)+ beta0+ beta1*time
+  est1[i] = lm(x~time)$coefficient[2]
+  est2[i]= mean(diff(x))
+}
+```
+
+# Exercise 27\* (Optional)
+
+Suppose $$x_t  =a_n t^n +a_{n-1} t^{n-1}+\ldots+ a_1 t+ a_0,  
+$$ namely, a polynomial of degree *at most* $n$ (If $a_n\neq 0$, then it
+is indeed of degree $n$).
+
+Show that if the order of differencing $d$ satisfies $d\ge n$, then
+$\nabla^d x_t$ is a constant with respect to $t$. In addition, if $d>n$,
+then $\nabla^d x_t$ always becomes identically zero.
+
+Hint: first, argue that if $x_t$ is a polynomial of degree *at most*
+$n$, then $\nabla x_t$ is a polynomial of degree *at most* $n-1$. Then
+iterate this argument when applying additional $\nabla$'s.
+
+# Exercise 28
+
+Problem 2.8 in the textbook.
+
+# Exercise 29
+
+Problem 2.10 in the textbook.
+
+# Exercise 30
+
+Problem 2.11 in the textbook.

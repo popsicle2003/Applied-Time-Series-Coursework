@@ -241,7 +241,7 @@ Since $\gamma_x(h) = 0$ for $|h| \ge 2$, the sum reduces to just three terms ($h
 
 Now we evaluate for the specific values of $\theta$:
 
--    **(i)** $\theta = 1$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + 1^2) + 2\left(1 - \frac{1}{n}\right)(1) \right] = \frac{\sigma_w^2}{n} \left[ 2 + 2 - \frac{2}{n} \right] = \frac{\sigma_w^2}{n} \left( 4 - \frac{2}{n} \right)$$
+-   **(i)** $\theta = 1$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + 1^2) + 2\left(1 - \frac{1}{n}\right)(1) \right] = \frac{\sigma_w^2}{n} \left[ 2 + 2 - \frac{2}{n} \right] = \frac{\sigma_w^2}{n} \left( 4 - \frac{2}{n} \right)$$
 
 -   **(ii)** $\theta = 0$: $$var(\bar{x}) = \frac{\sigma_w^2}{n} \left[ (1 + 0) + 0 \right] = \frac{\sigma_w^2}{n}$$
 
@@ -263,8 +263,7 @@ If we assume $n$ is very large, the term $(1/n)$ approaches 0. Hence, when we lo
 getS3method("plot", "acf")
 ```
 
-By running getS3method("plot", "acf"), the specific line that computes clim0 (ignoring the 'if/else' controls) is:
-clim0 \<- qnorm((1 + ci)/2) / sqrt(x\$n.used) `This uses the quantile function of the standard normal distribution ('qnorm') to find the z-score corresponding to the confidence interval 'ci', and divides it by the square root of the sample size 'x$n.used'. We can wrap this into a standalone function:`
+By running getS3method("plot", "acf"), the specific line that computes clim0 (ignoring the 'if/else' controls) is: clim0 \<- qnorm((1 + ci)/2) / sqrt(x\$n.used) `This uses the quantile function of the standard normal distribution ('qnorm') to find the z-score corresponding to the confidence interval 'ci', and divides it by the square root of the sample size 'x$n.used'. We can wrap this into a standalone function:`
 
 ```{r}
 clim <- function(n, p) {
@@ -309,11 +308,9 @@ The dashed lines on an ACF plot, visually represent the constructed confidence i
 
 **Exercise 1.21 in the textbook.**
 
-**(a) Simulate a series of n=500 moving average observations as in Example 1.9 and compute the sample ACF,** $\hat{\rho}(h)$**, to lag 20. Compare the sample ACF you obtain to the actual ACF,** $\rho(h)$**.
-(b) Repeat part (a) using only n = 50. How does changing n affect the results?**
+**(a) Simulate a series of n=500 moving average observations as in Example 1.9 and compute the sample ACF,** $\hat{\rho}(h)$**, to lag 20. Compare the sample ACF you obtain to the actual ACF,** $\rho(h)$**. (b) Repeat part (a) using only n = 50. How does changing n affect the results?**
 
-Moving average process as $v_t = \frac{1}{3}(w_{t-1} + w_t + w_{t+1})$, where $w_t$ is Gaussian white noise.
-From Example 1.20, actual ACFs for moving average process are:
+Moving average process as $v_t = \frac{1}{3}(w_{t-1} + w_t + w_{t+1})$, where $w_t$ is Gaussian white noise. From Example 1.20, actual ACFs for moving average process are:
 
 $\rho(0) = 1$
 

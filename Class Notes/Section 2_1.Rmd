@@ -1,0 +1,418 @@
+---
+title: An R Markdown document converted from "Section 2_1.ipynb"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+In Chapter 2, we will address multiple linear regression in a time
+series context, model selection, exploratory data analysis for
+preprocessing nonstationary time series (for example trend removal), the
+concept of differencing and the backshift operator, variance
+stabilization, and nonparametric smoothing of time series.
+
+# 2.1 Classical Regression in the Time Series Context
+
+We have addressed autoregression models, which is modeling the
+relationship between current time series value $x_t$, and the lagged
+values $x_{t-1},\ldots, x_{t-q}$. So in a sense, it is modeling an
+*internal* evolving mechanism of the time series $\{x_t\}$ itself.
+
+Often, one may also wish to model how a time series $\{x_t\}$ is related
+to external factors, say, $(z_{t,1},\ldots, z_{t,q})^T$ (a different
+multivariate time series). For example, $\{x_t\}$ is certain pollution
+index, $z_{t,1}$ is temperature, $z_{t,2}$ is humidity, etc.
+
+In general, we consider the following multiple linear regression model
+
+$$
+x_t=\beta_0+\beta_1 z_{t,1}+\ldots+ \beta_q z_{t,q}+w_t,\tag{1}
+$$ where $\beta_0,\ldots,\beta_q$ are unknown coefficients, and
+$\{w_t\}$ is random error series with variance $\sigma_w^2$.
+
+**Note.** \* For simplicity and exploratory analysis, we will for now
+assume that $\{w_t\}$ is Gaussian white noise independent of
+$\{(z_{t,1},\ldots, z_{t,q})^T\}$. However in practice, the assumption
+rarely holds, and typically the random error $\{w_t\}$ exhibits temporal
+correlation.
+
+-   When the goal is to obtain an accurate estimate of
+    $\beta_0,\ldots,\beta_q$, the temporal correlation in $\{w_t\}$ must
+    be accounted for, e.g., by using [Generalized Least
+    Squares](https://en.wikipedia.org/wiki/Generalized_least_squares).
+
+(\*However, it is known that for some common choice of deterministic
+predictor variables such as trigonometric and polynomial functions in
+$t$, as sample size tends to infinity, the advantage of GLS over OLS
+becomes negligible.)
+
+-   In addition, all the analysis below are conditional on
+    $\{(z_{t,1},\ldots, z_{t,q})^T\}$, namely, we are treating these
+    variables as if they are nonrandom, although they can be random in
+    general.
+
+**Summary: the linear regression analysis to be discussed in this
+section which ignores temporal correlation should only be viewed as a
+step of exploratory analysis. In particular, do NOT draw conclusions
+based on p-values presented in this section. We will revisit this
+later.**
+
+## 2.1.1 Least Squares Estimate
+
+It is convenient to write the model (1) with a vector form: introducing
+$\mathbf{z}_t=(1,z_{t,1},\ldots, z_{t,q})^T$, and
+$\boldsymbol{\beta}=(\beta_0,\beta_1,\ldots,\beta_q)^T$.
+
+$$
+x_t= \boldsymbol{\beta}^T \mathbf{z}_t +w_t.
+$$
+
+Recall the OLS ([ordinary least
+squares](https://en.wikipedia.org/wiki/Ordinary_least_squares))
+estimation method finds $\boldsymbol{\beta}$ which minimizes $$
+Q(\boldsymbol{\beta})=\sum_{t=1}^n (x_t-\boldsymbol{\beta}^T \mathbf{z}_t)^2.
+$$ Denoting the resulting estimate by $\hat{\boldsymbol{\beta}}$, one
+can derive that $$
+\hat{\boldsymbol{\beta}}=(\hat{\beta}_0,\hat{\beta}_1,\ldots,\hat{\beta}_q)^T= \left(\sum_{t=1}^n \mathbf{z}_t\mathbf{z}_t^T\right)^{-1}\left( \sum_{t=1}^n  \mathbf{z}_t x_t\right)
+$$ given that matrix invertibility of the square matrix
+$\sum_{t=1}^n \mathbf{z}_t\mathbf{z}_t^T$ (often written as $X^T X$ with
+design matrix $X=(\mathbf{z}_1,\ldots,\mathbf{z}_n)^T$) holds.
+
+We write $$
+SSE=Q(\hat{\boldsymbol{\beta}}),
+$$ the sum of squared errors after regression.
+
+One then estimates the variance $\sigma_w^2$ of $\{w_t\}$ by $$
+\hat{\sigma}_w^2=\frac{SSE}{n-(q+1)}=MSE.
+$$
+
+The variance-covariance matrix of $\hat{\boldsymbol{\beta}}$ is given by
+$$
+\sigma_w^2 C,
+$$ where $C=\left(\sum_{t=1}^n \mathbf{z}_t\mathbf{z}_t^T\right)^{-1}$.
+
+Under the assumption that the linear regression model is correct and
+$\{w_t\}$ is Gaussian white noise, one can derive that\
+$$
+\frac{\hat{\beta}_i-\beta_i}{\hat{\sigma}_w \sqrt{C_{ii}}}\sim   \text{t-distribution with d.f. }n-q-1.
+$$ This can be used to carry out t-test of $H_0: \beta_i=0$ vs
+$H_a: \beta_i\neq 0$.
+
+**Note.** However as mentioned above, Gaussian white noise assumption on
+$\{w_t\}$ often fails for time series. So one should not read too much
+into the result of the t-test in the time series context after
+performing OLS.
+
+**Example.**
+
+In fact, often one can choose $z_{t,j}$ to be a function of time index
+$t$ to model trends.
+
+```{r}
+#install.packages('astsa');
+library('astsa')
+```
+
+The dataset *chicken* in *astsa*, which stores monthly price (cents per
+pound) of a chicken in the US from mid-2001 to mid-2016 (180 months).
+
+```{r}
+chicken
+length(chicken)
+plot(chicken)
+```
+
+There is an obvious upward trend in the time series. Consider the
+following model, suppose $x_t$ = chicken price.
+
+$$
+x_t=\beta_0+\beta_1 z_t + w_t,   \quad t=1,2,\ldots,180.
+$$ where $$
+z_1=2001+\frac{7}{12},\ z_2=2001+\frac{8}{12}, \ \ldots,\ z_{180}=2016+\frac{8}{12}.
+$$
+
+A convenient way to generate $\{z_t\}$ above is to directly extract it
+from the *ts* object using the function *time*.
+
+```         
+time(x, ...)
+
+time creates the vector of times at which a time series was sampled.
+```
+
+```{r}
+z <- time(chicken)
+attributes(z)
+z
+```
+
+```{r}
+summary(fit <- lm(chicken ~ z, na.action = NULL)) # na.action = NULL to retain the time series attributes for the residuals and fitted values.
+```
+
+```{r}
+plot(chicken, ylab="cents per pound")
+abline(fit) #plot fitted line.
+```
+
+```{r}
+#another way to plot fitted value
+ts.plot(chicken,fitted.values(fit),lty=1:2)
+```
+
+The estimated slope coefficient $\hat{\beta}_1 = 3.59$ (with a standard
+error of 0.08) yielding a estimated increase of about 3.6 cents per
+year. The t-test with extremely small p-value indicates strong evidence
+of nonzero slope. However, the p-values should be treated with caution
+since the residual exhibits strong temporal correlation. See below.
+
+```{r}
+plot(res<-residuals(fit)) # residual plot as time series
+acf(res)
+```
+
+**Observation**: significant ACF values present. The model does not fit
+well.
+
+Exercise 21.
+
+## 2.1.2 Variable Selection and Model Assessment
+
+Recall the model
+
+$$
+x_t=\beta_0+\beta_1 z_{t,1}+\ldots+ \beta_q z_{t,q}+w_t. \tag{2}
+$$
+
+Often one may want to check if a simpler model involving fewer variables
+is sufficient: $$
+x_t=\beta_0+\beta_1 z_{t,1}+\ldots+ \beta_r z_{t,r}+w_t,  \quad r<q. \tag{3}
+$$ Model (3) is obtained from (2) by setting
+$\beta_{r+1}=\ldots=\beta_q=0$. We can then formulate the model
+selection problem as testing the null hypothesis $$
+H_0: \beta_{r+1}=\ldots=\beta_q=0.
+$$ Let $SSE_r$ denote the sum of squared errors (after fitting OLS) of
+the reduced model (3), and let $SSE$ still denote the sum of squared
+errors of the full model (2). This is achieved through an F-test
+involving the statistic $$
+F=\frac{(SSE_r-SSE)/(q-r)}{SSE/(n-q-1)}=\frac{MSR}{MSE}
+$$ which follows F distribution with d.f. $q-r$ and $n-q-1$ when the
+null is true. We reject $H_0$ when the observed $F$ is large.
+
+![](https://drive.google.com/uc?export=view&id=1HOcieJNkyshGOX34CvopBhmlb8Z2gMu7)
+
+In particular, when $r=0$, we are testing
+$H_0: \beta_1=\beta_2=\ldots=\beta_q=0$, under which the model becomes
+$$
+x_t=\beta_0+w_t,      
+ $$ namely, no external explanatory variables are included. In this
+case, the OLS estimate of $\beta_0$ is the sample mean
+$\hat{\beta}_0 =\bar{x}$ and the sum of squared errors after fitting OLS
+becomes $$
+SSE_0=\sum_{t=1}^n (x_t-\bar{x})^2.
+ $$ The following quantity $$
+R^2=\frac{SSE_0-SSE}{SSE_0}
+ $$ ($SSE$ is still regarding the full model) is called the *coefficient
+of determination* which is an increasing function of $F$ statistic (see
+[here](https://stats.stackexchange.com/questions/56881/whats-the-relationship-between-r2-and-f-test#:~:text=The%20practical%20interpretation%20is%20that,the%20coefficients%20are%20non%2Dzero.)).
+So the larger $R^2$ is, the stronger evidence against
+$H_0: \beta_1=\beta_2=\ldots=\beta_q=0$.
+
+Below we use ANOVA (F-test) to compare the full model $$
+x_t=\beta_0+\beta_1 z_t + w_t,   \quad t=1,2,\ldots,180.
+$$ v.s. the reduced model $$
+x_t=\beta_0+ w_t,   \quad t=1,2,\ldots,180.
+$$
+
+```{r}
+summary(aov(fit))
+```
+
+ANOVA (F-test) can be used to add or delete variables in a stepwise
+manner (one model is a submodel of the other).
+
+For example, ANOVA can be used to compare model involving
+$(1,z_{1,t},z_{2,t},z_{3,t})$ v.s. model involving $(1,z_{1,t})$, but
+cannot be used to directly compare $(1,z_{1,t},z_{2,t})$ vs
+$(1,z_{3,t})$.
+
+Common measurements of goodness of fit/information criteria (smaller the
+criterion better the fit):
+
+-   Akaike’s Information Criterion (AIC)
+-   AIC, Bias Corrected (AICc)
+-   Bayesian Information Criterion (BIC)
+
+They are all of the form $$
+Criterion= \log(SSE(r)/n)+p_n(r)
+$$ where $SSE(r)$ stands for $SSE$ resulting from regression on the
+selected $r$ variables, and $p_n(r)$ is a penalty function which is an
+increasing function of $r$. (Se Definitions 2.1-2.3 in the textbook for
+more details.)
+
+-   AICc $\approx$ AIC when sample size is large. AICc tends to be
+    superior in smaller samples.
+
+-   BIC tends to choose smaller models, does well at getting the correct
+    order in large samples;
+
+\*See Problems 2.4 and 2.5 in the textbook for more about these
+information criteria (NOT homework).
+
+**Example.** Monthly Pollution, Temperature and Mortality Data
+
+```{r}
+#install.packages('astsa');
+library('astsa')
+plot(cmort, main="Cardiovascular Mortality", xlab="", ylab="")
+plot(tempr, main="Temperature", xlab="", ylab="")
+plot(part, main="Particulates", xlab="", ylab="")
+
+ts.plot(cmort,tempr,part, col=1:3)
+```
+
+```{r}
+pairs(z<-cbind(Mortality=cmort, Temperature=tempr, Particulates=part)) # scatter plot matrix (notice renaming in cbind)
+```
+
+**Question**: does the plot matrix above contain temporal correlation
+information?
+
+```{r}
+acf(z, lag.max = floor(length(cmort)*0.2))
+```
+
+Suppose
+
+-   $M_t$: mortality
+-   $T_t$: temperature
+-   $P_t$: particulate level
+
+Consider the following potential models $$
+\begin{align}
+M_t&=\beta_0+\beta_1t + w_t\\
+M_t&=\beta_0 +\beta_1t +\beta_2 (T_t-T_{\bullet})+w_t\\
+M_t&=\beta_0 +\beta_1t +\beta_2 (T_t-T_{\bullet})+\beta_3(T_t-T_{\bullet})^2 + w_t\\
+M_t&=\beta_0 +\beta_1t +\beta_2 (T_t-T_{\bullet})+\beta_3(T_t-T_{\bullet})^2 + \beta_4 P_t+ w_t,
+\end{align} 
+$$
+
+where $T_{\bullet}$ stands for mean of $\{T_t\}$ (adjusting for mean to
+[avoid collinearity problem from polynomial
+terms](https://stats.stackexchange.com/questions/183232/centering-variables-in-regression-leads-to-the-same-model-of-original-variables)).
+
+```{r}
+mean(tempr)
+```
+
+```{r}
+temp = tempr-mean(tempr) # center temperature
+temp2 = temp^2
+trend = time(cmort) # time
+
+
+fit = lm(cmort~ trend + temp + temp2 + part, na.action = NULL)
+
+summary(fit) # regression results
+```
+
+Fitted value:
+
+$$
+\hat{M}_t=2832-1.396\times t -0.4725(T_t-74.26)+0.0259(T_t-74.26)^2 + 0.2554 P_t
+$$
+
+```{r}
+# Change plot size
+#options(repr.plot.width=20, repr.plot.height=7)
+
+ts.plot(cmort, fitted.values(fit),lty=1:2,col=1:2)
+legend('topleft', 'Fitted Value', col=2, lty = 2)
+
+plot(res<-residuals(fit))
+acf(res)
+```
+
+```{r}
+summary(aov(fit)) # ANOVA table (foward step-wise F test)
+```
+
+Observation: each model does substantially better than the one before it
+
+```{r}
+summary(aov(lm(cmort~cbind(trend, temp, temp2, part)))) # ANOVA for overall regression H_0: beta_1=...beta_q=0
+```
+
+```{r}
+num = length(cmort) # sample size
+AIC(fit)/num - log(2*pi) # AIC
+BIC(fit)/num - log(2*pi) # BIC
+(AICc = log(sum(resid(fit)^2)/num) + (num+5)/(num-5-2)) # AICc
+```
+
+```{r}
+
+fit_part = lm(cmort~ trend  + part, na.action = NULL)
+fit_temp = lm(cmort~ trend + temp + temp2, na.action = NULL)
+
+
+print('Information Criteria for model with part')
+AIC(fit_part)/num - log(2*pi) # AIC
+BIC(fit_part)/num - log(2*pi) # BIC
+(AICc = log(sum(resid(fit_part)^2)/num) + (num+5)/(num-5-2)) # AICc
+
+
+print('Information Criteria for model with temp and temp2')
+AIC(fit_temp)/num - log(2*pi) # AIC (textbook version differs from R version by terms that do not change from model to model)
+BIC(fit_temp)/num - log(2*pi) # BIC
+(AICc = log(sum(resid(fit_temp)^2)/num) + (num+5)/(num-5-2)) # AICc
+```
+
+Exercise 22.
+
+**Example.** Regression with lagged value.
+
+$R_t$: Recruitment (fish population)
+
+$S_t$: SOI
+
+Model:
+
+$R_t=\beta_0+\beta_1S_{t-6}+w_t$
+
+Note:
+
+for $S_{t-6}$, $t=7,\ldots,n+6$;\
+for $R_t$, $t=1,\ldots,n$.
+
+So only within the intersection $t=7,\ldots,n$ both are well-defined.
+
+```         
+ts.intersect(…, dframe = FALSE)
+ts.union(…, dframe = FALSE)
+
+Bind time series which have a common frequency. ts.union pads with NAs to the total time coverage, ts.intersect restricts to the time covered by all the series.
+```
+
+```{r}
+soiL6=lag(soi,-6)
+ts.plot(soi,soiL6,lty=1:2)
+
+
+fish <- ts.intersect(rec, soiL6, dframe = T)
+head(fish , 10)
+
+
+summary(fit <- lm(rec~soiL6, data=fish, na.action=NULL))
+```
+
+```{r}
+#options(repr.plot.width=16, repr.plot.height=6)
+ts.plot(rec,fitted.values(fit),lty=1:2,col=1:2)
+legend('topleft', 'Fitted Value', col=2, lty = 2)
+plot(res<-residuals(fit))
+acf(res,lag.max=60)
+```
+
+Exercise 23.
